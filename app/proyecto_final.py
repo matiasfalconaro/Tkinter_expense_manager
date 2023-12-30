@@ -27,7 +27,7 @@ def do_nothing():
 
 root = Tk()
 root.grid_rowconfigure(12, weight=1) # Expand the TreeView
-root.title('Python Expense Manager')
+root.title('Expense Manager')
 root.geometry('1600x900')     # Standard notebook 14' window size
 
 #-----FRAMES-----#
@@ -100,7 +100,7 @@ photo = ImageTk.PhotoImage(resized_image)
 img = Label(header_frame, image=photo)
 img.grid(row=0, column=0, padx=10, pady=5, sticky=W)
 
-title = Label(header_frame, text='PYTHON EXPENSE MANAGER', font=('Arial', 20, 'bold'))
+title = Label(header_frame, text='EXPENSE MANAGER', font=('Arial', 20, 'bold'))
 title.grid(row=0, column=1, padx=0, sticky=W)
 #-----END HEADER-----#
 
