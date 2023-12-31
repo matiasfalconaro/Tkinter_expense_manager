@@ -547,7 +547,17 @@ def get_graph_data() -> List[Tuple]:
 
 # START VIEW
 root = Tk()
-root.grid_rowconfigure(12, weight=1)  # Expand the TreeView
+root.grid_columnconfigure(0,
+                          weight=1)
+root.grid_columnconfigure(1,
+                          weight=0)  # The column that contains the version_frame
+root.grid_columnconfigure(2,
+                          weight=1)
+root.grid_columnconfigure(3,
+                          weight=1)
+root.grid_rowconfigure(12,
+                       weight=1)  # Expand the TreeView
+
 root.title('Expense Manager')
 root.geometry('1600x900')  # Standard window size for 14' notebook
 
@@ -558,14 +568,29 @@ header_frame.grid(row=0,
                   sticky='ew',
                   padx=0,
                   pady=5)
+header_frame.grid_columnconfigure(1,
+                                  weight=1)
+
+version_frame = Frame(root,
+                      borderwidth=1,
+                      relief="solid")
+version_frame.grid(row=0,
+                   column=1,  # Adjust the column index as necessary
+                   sticky='ew',  # The frame will expand to fill the width of the column
+                   padx=20,  # Increase padding to reduce the width of the actual content area
+                   pady=10)
+version_frame.grid_columnconfigure(0, weight=1)
+version_frame.grid_columnconfigure(1, weight=0)  # Actual column for the version label
+version_frame.grid_columnconfigure(2, weight=1)
 
 status_frame = Frame(root,
                      borderwidth=1,
                      relief="solid")
 status_frame.grid(row=0,
-                  column=2,
-                  padx=0,
-                  pady=10,
+                  column=3,
+                  sticky='ew',
+                  padx=10,
+                  pady=0,
                   columnspan=3)
 
 graph_frame = Frame(root,
@@ -687,11 +712,23 @@ status = Label(status_frame,
                width=50,
                anchor=W)
 status.grid(row=0,
-            column=0,
+            column=3,
             sticky=W,
             padx=0,
             pady=0)
 # END STATUS
+
+# VERSION
+version = Label(version_frame,
+                text="Version 1.0.0",
+                font=('Arial', 10, 'bold'),
+                bg='grey',
+                fg='white')
+version.grid(row=0,
+             column=1,
+             sticky='ew')  # Center the label in the frame
+
+# END VERSION
 
 # FORM
 entry_width = 30
