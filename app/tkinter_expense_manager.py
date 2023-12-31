@@ -29,25 +29,32 @@ from tkinter import (N,
 from tkinter import (Scrollbar,
                      StringVar)
 from tkinter import ttk
-
 from tkinter.messagebox import showinfo
+
 from tkcalendar import DateEntry
 
+from typing import Optional, List, Tuple
 
-#  START CONTROLLER
-def update_status_bar(message):
+
+# START CONTROLLER
+def update_status_bar(message: str) -> None:
+    """Updates the text of the status bar with the provided message."""
     status.config(text=message)  # Update label text
     root.update_idletasks()  # Force UI update
 
 
-def update_due_date_status():
+def update_due_date_status() -> None:
+    """Enables or disables the due date entry
+    based on the state of a check variable."""
     if var_check_due_date.get():
         e_due_date.config(state='disabled')
     else:
         e_due_date.config(state='normal')
 
 
-def validate_fields():
+def validate_fields() -> bool:
+    """Validates a set of fields,
+    returning True if all fields are valid, False otherwise."""
     fields_var = [var_product,
                   var_quantity,
                   var_amount,
@@ -67,7 +74,8 @@ def validate_fields():
     return True
 
 
-def clear_form():
+def clear_form() -> None:
+    """Resets all form fields to their default (empty) values."""
     var_amount.set('')
     var_product.set('')
     var_quantity.set('')
@@ -80,20 +88,25 @@ def clear_form():
     cb_payment_method.set('')
 
 
-def prepare_add():
+def prepare_add() -> None:
+    """Prepares the form for adding a new entry
+    by enabling the confirm and cancel buttons."""
     confirm_button.config(state='normal',
                           command=add)
     cancel_button.config(state='normal')
 
 
-def prepare_delete():
+def prepare_delete() -> None:
+    """Prepares the form for deletion by enabling the confirm
+    and cancel buttons with the delete command."""
     confirm_button.config(state='normal',
                           command=delete)
     cancel_button.config(state='normal')
 
 
-def confirm():
-    # The action is defined in each case (add, delete, modify)
+def confirm() -> None:
+    """Executes the defined action (add, delete, modify),
+    disables the buttons, and updates the graph."""
     confirm_button.config(state='disabled')
     cancel_button.config(state='disabled')
 
@@ -102,14 +115,17 @@ def confirm():
         create_graph(graph_frame)  # Updated graph
 
 
-def cancel():
+def cancel() -> None:
+    """Disables the confirm and cancel buttons and resets the form fields."""
     confirm_button.config(state='disabled',
                           command=None)
     cancel_button.config(state='disabled')
     clear_form()
 
 
-def apply_modification(purchase_id, db_id):
+def apply_modification(purchase_id: int, db_id: int) -> None:
+    """Applies modifications to a purchase record if all fields are valid;
+    otherwise, displays an error and resets the form."""
     if not validate_fields():
         update_status_bar("All fields must be filled.")
         showinfo("Info", "All fields must be filled.")
@@ -150,7 +166,8 @@ def apply_modification(purchase_id, db_id):
     confirm()
 
 
-def load_data_into_treeview():
+def load_data_into_treeview() -> None:
+    """Loads data from the database and populates it into a treeview widget."""
     records = query_db()
     for row in records:
         tree.insert('',
@@ -159,19 +176,28 @@ def load_data_into_treeview():
                     values=row[1:])
 
 
-def get_current_month():
+def get_current_month() -> int:
+    """Returns the current month as an integer."""
     return datetime.datetime.now().month
 
 
-def get_current_month_word():
-    locale.setlocale(locale.LC_TIME, '')  # Return the month in Spanish
-    current_month = get_current_month()
+def get_current_month_word(locale_setting=None):
+    """Returns the current month's name in the specified locale.
+    If no locale is specified, the system's default locale is used."""
+    if locale_setting:
+        locale.setlocale(locale.LC_TIME, locale_setting)
+    else:
+        locale.setlocale(locale.LC_TIME, locale.getdefaultlocale())
+
+    current_month = datetime.datetime.now().month
     current_month_str = datetime.datetime.strptime(str(current_month),
                                                    "%m").strftime("%B")
     return current_month_str.capitalize()
 
 
-def get_total_accumulated():
+def get_total_accumulated() -> float:
+    """Calculates and returns the total accumulated value
+    for records in the current month."""
     current_month = get_current_month()
     records = query_db(month=current_month)
 
@@ -182,24 +208,28 @@ def get_total_accumulated():
     return total_accumulated
 
 
-def load_total_accumulated():
+def load_total_accumulated() -> float:
+    """Loads and returns the total accumulated value for the current month,
+    updating a Tkinter variable with this value."""
     total_accumulated = get_total_accumulated()
     var_total.set(f"$ {total_accumulated:.2f}")
     return total_accumulated
 
 
-def update_total_accumulated_label():
+def update_total_accumulated_label() -> None:
+    """Updates the label to display the total for the current month."""
     current_month_str = get_current_month_word()
     l_total.config(text=f"Total {current_month_str}:")
-#  END CONTROLLER
+# END CONTROLLER
 
 ##############################################################################
 
-#  START MODEL
+# START MODEL
 
 
-#  CRUD
-def add():
+# CRUD
+def add() -> None:
+    """Adds a new record to the database and updates the UI accordingly."""
     var_date.set(cal_date.get_date().strftime("%Y-%m-%d"))
     if var_check_due_date.get():
         due_date_value = 'N/A'
@@ -263,7 +293,8 @@ def add():
     confirm()
 
 
-def delete():
+def delete() -> None:
+    """Deletes the selected record from the database and updates the UI."""
     purchase_id = tree.focus()
     if not purchase_id:
         showinfo("Info", "You must select a record to delete.")
@@ -289,7 +320,9 @@ def delete():
     confirm()
 
 
-def modify():
+def modify() -> None:
+    """Prepares the form for modifying the selected record
+    by loading its values into the input fields."""
     purchase_id = tree.focus()
     if not purchase_id:
         showinfo("Info", "You must select a record to modify.")
@@ -318,7 +351,9 @@ def modify():
     cancel_button.config(state='normal')
 
 
-def search():
+def search() -> None:
+    """Searches the database records based on the given search term
+    and updates the treeview with the filtered results."""
     search_term = var_search.get()
     if "*" in search_term:
         search_term = ""
@@ -329,7 +364,7 @@ def search():
 
     filtered_records = []
     for row in records:
-        row_str = ' '.join(map(str, row))  # Record -> string
+        row_str = ' '.join(map(str, row))
         if regex.search(row_str):
             filtered_records.append(row)
 
@@ -337,10 +372,7 @@ def search():
         tree.delete(i)
 
     for row in filtered_records:
-        tree.insert('',
-                    'end',
-                    text=str(row[0]),
-                    values=row[1:])
+        tree.insert('', 'end', text=str(row[0]), values=row[1:])
 
     if search_term == "":
         update_status_bar("All records are shown.")
@@ -348,20 +380,24 @@ def search():
         update_status_bar(f"Search results for: {search_term}")
 
     load_total_accumulated()
-#  END CRUD
+# END CRUD
 
 
-#  DATABASE
-def connect_to_database():
-    conn = sqlite3.connect('data_base/database.db')
+# DATABASE
+def connect_to_database() -> sqlite3.Connection:
+    """Establishes and returns a connection to the SQLite database."""
+    conn = sqlite3.connect('database/database.db')
     return conn
 
 
-def disconnect_from_database(conn):
+def disconnect_from_database(conn: sqlite3.Connection) -> None:
+    """Closes the given database connection."""
     conn.close()
 
 
-def create_table(conn):
+def create_table(conn: sqlite3.Connection) -> None:
+    """Creates the 'expenses' table in the database
+    if it does not already exist."""
     cursor = conn.cursor()
     query = """CREATE TABLE IF NOT EXISTS expenses (
                id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -380,7 +416,9 @@ def create_table(conn):
     conn.commit()
 
 
-def add_to_db(conn, values):
+def add_to_db(conn: sqlite3.Connection, values: dict) -> int:
+    """Inserts a new record into the 'expenses' table
+    and returns the ID of the inserted record."""
     conn = connect_to_database()
     cursor = conn.cursor()
 
@@ -414,7 +452,9 @@ def add_to_db(conn, values):
     return last_id
 
 
-def delete_from_db(record_id):
+def delete_from_db(record_id: int) -> None:
+    """Deletes a record from the 'expenses' table
+    based on the given record ID."""
     conn = connect_to_database()
     cursor = conn.cursor()
     query = "DELETE FROM expenses WHERE id = ?;"
@@ -423,7 +463,9 @@ def delete_from_db(record_id):
     disconnect_from_database(conn)
 
 
-def update_db(record_id, values):
+def update_db(record_id: int, values: dict) -> None:
+    """Updates a specific record in the 'expenses' table
+    with new values based on the given record ID."""
     conn = connect_to_database()
     cursor = conn.cursor()
     query = """UPDATE expenses SET
@@ -456,8 +498,9 @@ def update_db(record_id, values):
     disconnect_from_database(conn)
 
 
-def query_db(month=None):
-    # Query all records. But if 1 month is specified, filter by month
+def query_db(month: Optional[int] = None) -> List[Tuple]:
+    """Queries and returns records from the 'expenses' table,
+    optionally filtering by the specified month."""
     conn = connect_to_database()
     cursor = conn.cursor()
     if month is not None:
@@ -472,13 +515,18 @@ def query_db(month=None):
     return rows
 
 
+# Establish a connection to the SQLite database.
 conn = connect_to_database()
+
+# Create the 'expenses' table in the database if it does not already exist.
 create_table(conn)
-#  END DATABASE
+# END DATABASE
 
 
-#  GRAPH (DATA)
-def get_graph_data():
+# GRAPH (DATA)
+def get_graph_data() -> List[Tuple]:
+    """Retrieves and returns data for graph generation
+    based on categories and their subtotals for the current month."""
     conn = connect_to_database()
     cursor = conn.cursor()
     current_month_num = str(get_current_month())
@@ -490,20 +538,20 @@ def get_graph_data():
     data = cursor.fetchall()
     disconnect_from_database(conn)
     return data
-#  END GRAPH (DATA)
+# END GRAPH (DATA)
 
-#  END MODEL
+# END MODEL
 
 ##############################################################################
 
 
-#  START VIEW
+# START VIEW
 root = Tk()
 root.grid_rowconfigure(12, weight=1)  # Expand the TreeView
-root.title('Python Expense Manager')
+root.title('Expense Manager')
 root.geometry('1600x900')  # Standard window size for 14' notebook
 
-#  FRAMES
+# FRAMES
 header_frame = Frame(root)
 header_frame.grid(row=0,
                   column=0,
@@ -561,7 +609,7 @@ treeview_frame.grid(row=12,
                     sticky='nsew')
 treeview_frame.grid_rowconfigure(0, weight=1)
 treeview_frame.grid_columnconfigure(0, weight=1)
-#  END FRAMES
+# END FRAMES
 
 var_id = IntVar()
 var_product = StringVar()
@@ -607,9 +655,9 @@ responsible_options = ["Matías",
                        "Gonzalo",
                        "Juan"]
 
-#  WIDGETS
+# WIDGETS
 
-#  HEADER
+# HEADER
 original_image = PilImage.open("app/rsc/tkinter_app_logo.png")
 resized_image = original_image.resize((50, 50))
 photo = ImageTk.PhotoImage(resized_image)
@@ -622,7 +670,7 @@ img.grid(row=0,
          sticky=W)
 
 title = Label(header_frame,
-              text='PYTHON EXPENSE MANAGER',
+              text='EXPENSE MANAGER',
               font=('Arial',
                     20,
                     'bold'))
@@ -630,9 +678,9 @@ title.grid(row=0,
            column=1,
            padx=0,
            sticky=W)
-#  END HEADER
+# END HEADER
 
-#  STATUS
+# STATUS
 status = Label(status_frame,
                text="Welcome.",
                font=('Arial', 10),
@@ -643,9 +691,9 @@ status.grid(row=0,
             sticky=W,
             padx=0,
             pady=0)
-#  END STATUS
+# END STATUS
 
-#  FORM
+# FORM
 entry_width = 30
 combo_width = entry_width - 2
 l_product = Label(data_entry_frame,
@@ -813,9 +861,9 @@ e_total.grid(row=9,
              sticky=W,
              padx=10,
              pady=5)
-#  END FORM
+# END FORM
 
-#  BUTTONS
+# BUTTONS
 add_button = Button(root,
                     text='Add',
                     command=prepare_add,
@@ -897,9 +945,9 @@ graph_placeholder.grid(row=0,
                        padx=0,
                        pady=0,
                        sticky='e')
-#  END BUTTONS
+# END BUTTONS
 
-#  TREEVIEW
+# TREEVIEW
 tree = ttk.Treeview(treeview_frame)
 tree.grid(row=0,
           column=0,
@@ -965,7 +1013,7 @@ tree.column('col7',
             minwidth=50,
             stretch=NO)  # Supplier
 tree.column('col8',
-            width=120,
+            width=200,
             minwidth=50,
             stretch=NO)  # Payment Method
 tree.column('col9',
@@ -1003,7 +1051,9 @@ tree.heading('col10',
 
 
 # GRAPH
-def create_graph(graph_frame):
+def create_graph(graph_frame: Frame) -> None:
+    """Generates and displays a bar graph of monthly expenses
+    by category in the specified Tkinter frame."""
     data = get_graph_data()
     current_month_word = get_current_month_word()
     categories = []
@@ -1058,12 +1108,12 @@ def create_graph(graph_frame):
 
 graph_placeholder.destroy()
 create_graph(graph_frame)
-#  END GRAPH
+# END GRAPH
 
-#  END WIDGETS
+# END WIDGETS
 
 update_total_accumulated_label()
 load_total_accumulated()
 load_data_into_treeview()
 root.mainloop()
-#  END VIEW
+# END VIEW
