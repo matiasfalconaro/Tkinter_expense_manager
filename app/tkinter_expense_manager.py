@@ -2,6 +2,7 @@ import datetime
 import locale
 import matplotlib.pyplot as plt
 import re
+import sqlite3
 import tkinter as tk
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -11,18 +12,15 @@ from PIL import Image as PilImage, ImageTk
 
 from tkinter import Tk, Frame
 from tkinter import *
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from tkinter.messagebox import *
 from tkcalendar import DateEntry
 
 #  START CONTROLLER
 
-expenses = []  # List to store expenses in memory
-
-
 def update_status_bar(message): 
-    status.config(text=message)
-    root.update_idletasks()
+    status.config(text=message)  # Update label text
+    root.update_idletasks()  # Force UI update
 
 
 def update_due_date_status():
@@ -33,15 +31,20 @@ def update_due_date_status():
 
 
 def validate_fields():
-    fields_var = [var_product, var_quantity, var_amount, var_supplier, var_date, var_due_date]
+    fields_var = [var_product,
+                  var_quantity,
+                  var_amount,
+                  var_supplier,
+                  var_date,
+                  var_due_date]
     fields_cb = [cb_responsible, cb_category, cb_payment_method]
     
     for var in fields_var:
-        if not var.get():
+        if (type(var) == str or type(var) == int) and not var:
             return False
 
     for cb in fields_cb:
-        if not cb.get():
+        if not cb:
             return False
 
     return True
@@ -59,7 +62,7 @@ def clear_form():
     cb_category.set('')
     cb_payment_method.set('')
 
-
+    
 def prepare_add():
     confirm_button.config(state='normal', command=add)
     cancel_button.config(state='normal')
@@ -71,28 +74,30 @@ def prepare_delete():
 
 
 def confirm():
+    # The action is defined in each case (add, delete, modify)
     confirm_button.config(state='disabled')
     cancel_button.config(state='disabled')
+    
     for widget in graph_frame.winfo_children():
-        widget.destroy()
-    create_graph(graph_frame)
-
+        widget.destroy()  # Delete previous graphs
+        create_graph(graph_frame)  # Updated graph
+        
 
 def cancel():
     confirm_button.config(state='disabled', command=None)
     cancel_button.config(state='disabled')
     clear_form()
-
-
-def apply_modification(purchase_id, id_memory):
+    
+    
+def apply_modification(purchase_id, db_id):
+    
     if not validate_fields():
         update_status_bar("All fields must be filled.")
-        messagebox.showinfo("Info", "All fields must be filled.")
+        showinfo("Info", "All fields must be filled.")
         cancel()
         return
 
     new_value = {
-        'id': id_memory,
         'product': var_product.get(),
         'quantity': int(var_quantity.get()),
         'amount': float(var_amount.get()),
@@ -104,10 +109,7 @@ def apply_modification(purchase_id, id_memory):
         'due_date': var_due_date.get()
     }
 
-    for idx, exp in enumerate(expenses):
-        if exp['id'] == id_memory:
-            expenses[idx] = new_value
-            break
+    update_db(db_id, new_value)
 
     if tree.exists(purchase_id):
         tree.item(purchase_id, values=(
@@ -115,7 +117,7 @@ def apply_modification(purchase_id, id_memory):
             new_value['quantity'],
             new_value['amount'],
             new_value['responsible'],
-            new_value['amount'] * new_value['quantity'],  # Subtotal
+            new_value['amount'] * new_value['quantity'], # Subtotal
             new_value['category'],
             new_value['supplier'],
             new_value['payment_method'],
@@ -123,205 +125,334 @@ def apply_modification(purchase_id, id_memory):
             new_value['due_date']
         ))
 
-    update_status_bar("Record modified with ID: " + str(id_memory))
+    update_status_bar("Record modified with ID: " + str(db_id))
     load_total_accumulated()
     clear_form()
     confirm()
 
 
 def load_data_into_treeview():
-    for row in expenses:
-        tree.insert('', 'end', text=str(row['id']), values=list(row.values())[1:])
-
+    records = query_db()
+    for row in records:
+        tree.insert('', 'end', text=str(row[0]), values=row[1:])
 
 def get_current_month():
     return datetime.datetime.now().month
 
-
 def get_current_month_word():
-    locale.setlocale(locale.LC_TIME, '')  # Set locale to system default
+    locale.setlocale(locale.LC_TIME, '')  # Return the month in Spanish
     current_month = get_current_month()
     current_month_str = datetime.datetime.strptime(str(current_month), "%m").strftime("%B")
     return current_month_str.capitalize()
 
-
 def get_total_accumulated():
     current_month = get_current_month()
+    records = query_db(month=current_month)
+    
     total_accumulated = 0
-    for exp in expenses:
-        exp_date = datetime.datetime.strptime(exp['date'], "%Y-%m-%d").month
-        if exp_date == current_month:
-            total_accumulated += exp['quantity'] * exp['amount']
+    for row in records:
+        total_accumulated += row[0]
+        
     return total_accumulated
-
 
 def load_total_accumulated():
     total_accumulated = get_total_accumulated()
     var_total.set(f"$ {total_accumulated:.2f}")
-
+    return total_accumulated
 
 def update_total_accumulated_label():
     current_month_str = get_current_month_word()
     l_total.config(text=f"Total {current_month_str}:")
-
+    
 #  END CONTROLLER
+
+##############################################################################
 
 #  START MODEL
 
+#  CRUD
 def add():
     var_date.set(cal_date.get_date().strftime("%Y-%m-%d"))
-    
-    if not var_check_due_date.get():
-        due_date_value = e_due_date.get_date().strftime("%Y-%m-%d")
-    else:
+    if var_check_due_date.get():
         due_date_value = 'N/A'
+    else:
+        due_date_value = e_due_date.get_date().strftime("%Y-%m-%d")
+
     var_due_date.set(due_date_value)
 
-    if not validate_fields():
-        update_status_bar("All input fields must be filled")
-        messagebox.showinfo("Info", "All input fields must be filled")
+    if not var_product.get() or not var_quantity.get() or not var_amount.get() or not cb_responsible.get():
+        update_status_bar("All input fields must be completed")
+        showinfo("Info", "All input fields must be completed")
         cancel()
         return
 
-    new_expense = {
-        'id': len(expenses) + 1,
-        'product': var_product.get(),
-        'quantity': int(var_quantity.get()),
+    values = {
         'amount': float(var_amount.get()),
-        'responsible': cb_responsible.get(),
+        'product': var_product.get(),
         'category': cb_category.get(),
+        'date': cal_date.get_date().strftime("%Y-%m-%d"),
         'supplier': var_supplier.get(),
         'payment_method': cb_payment_method.get(),
-        'date': var_date.get(),
+        'responsible': cb_responsible.get(),
+        'quantity': int(var_quantity.get()),
         'due_date': due_date_value
     }
 
-    expenses.append(new_expense)
+    for value in values.values():
+        if not value:
+            showinfo("Info", "All fields for add must be filled.")
+            update_status_bar("All fields for add must be filled.")
+            cancel()
+            return
 
-    subtotal_accumulated = round(new_expense['quantity'] * new_expense['amount'], 2)
+        if values['quantity'] <= 0 or values['amount'] <= 0:
+            update_status_bar("Quantity and amount must be positive numbers.")
+            return
+        
+    conn = connect_to_database()
+    last_id = add_to_db(conn, values)
+
+    subtotal_accumulated = round(values['quantity'] * values['amount'], 2)
 
     tree.insert('',
                 'end',
-                text=str(new_expense['id']),
-                values=(new_expense['product'],
-                        new_expense['quantity'],
-                        new_expense['amount'],
-                        new_expense['responsible'],
+                text=str(last_id),
+                values=(values['product'],
+                        values['quantity'],
+                        values['amount'],
+                        values['responsible'],
                         f"{subtotal_accumulated:.2f}",
-                        new_expense['category'],
-                        new_expense['supplier'],
-                        new_expense['payment_method'],
-                        new_expense['date'],
-                        new_expense['due_date']))
+                        values['category'],
+                        values['supplier'],
+                        values['payment_method'],
+                        values['date'],
+                        values['due_date']))
 
     load_total_accumulated()
-    update_status_bar("Record added with ID: " + str(new_expense['id']))
+    update_status_bar("Record added with ID: " + str(last_id))
     clear_form()
     confirm()
 
 
-def delete():
+def delete():    
     purchase_id = tree.focus()
     if not purchase_id:
-        messagebox.showinfo("Info", "You must select a record to delete.")
+        showinfo("Info", "You must select a record to delete.")
         update_status_bar("You must select a record to delete.")
         cancel()
         return
-
-    id_memory = int(tree.item(purchase_id, 'text'))
-
-    global expenses
-
-    new_expenses = []
-    for exp in expenses:
-        if exp['id'] != id_memory:
-            new_expenses.append(exp)
-    expenses = new_expenses
     
-    tree.delete(purchase_id)
-    load_total_accumulated()
-    update_status_bar("Record deleted with ID: " + str(id_memory))
-    confirm()
+    db_id_str = tree.item(purchase_id, 'text')
 
-
-def modify():
-    purchase_id = tree.focus()
-    if not purchase_id:
-        messagebox.showinfo("Info", "You must select a record to modify.")
-        update_status_bar("You must select a record to modify.")
+    if re.match(r'^\d+$', db_id_str): # Integers >= 0
+        db_id = int(db_id_str)
+    else:
+        showinfo("Error",  "The ID is not a valid number.")
+        update_status_bar("The ID is not a valid number.")
         cancel()
         return
 
-    id_memory = int(tree.item(purchase_id, 'text'))
-
-    selected_expense = None
-    for exp in expenses:
-        if exp['id'] == id_memory:
-            selected_expense = exp
-            break
-
-    if selected_expense:
-        var_product.set(selected_expense['product'])
-        var_quantity.set(selected_expense['quantity'])
-        var_amount.set(selected_expense['amount'])
-        var_date.set(selected_expense['date'])
-        cb_responsible.set(selected_expense['responsible'])
-        cb_category.set(selected_expense['category'])
-        cb_payment_method.set(selected_expense['payment_method'])
-        var_supplier.set(selected_expense['supplier'])
-        var_due_date.set(selected_expense['due_date'])
-
-    update_status_bar("Modifying record ID: " + str(id_memory))
-
-    confirm_button.config(state='normal', command=lambda: apply_modification(purchase_id, id_memory))
+    delete_from_db(db_id)
+    
+    tree.delete(purchase_id)
+    load_total_accumulated()
+    update_status_bar("Record deleted with ID: " + str(db_id))
+    confirm()
+    
+    
+def modify():
+    purchase_id = tree.focus()
+    if not purchase_id:
+        showinfo("Info", "You must select a record to modify.")
+        update_status_bar("You must select a record to modify.")
+        cancel()
+        return
+    
+    db_id = int(tree.item(purchase_id, 'text'))
+    
+    values = tree.item(purchase_id, 'values')
+    var_product.set(values[0])
+    var_quantity.set(values[1])
+    var_amount.set(values[2])
+    var_date.set(values[8])
+    cb_responsible.set(values[3])
+    cb_category.set(values[5])
+    cb_payment_method.set(values[7])
+    var_supplier.set(values[6])
+    var_due_date.set(values[9])
+    
+    update_status_bar("Modifying record ID: " + str(db_id))
+    
+    confirm_button.config(state='normal', command=lambda: apply_modification(purchase_id, db_id))
     cancel_button.config(state='normal')
 
 
 def search():
     search_term = var_search.get()
-    if "*" in search_term:
-        search_term = ""
+    # If search_term contains "*", show all records
+    if "*" in search_term: search_term = ""
+    
+    records = query_db()
 
-    regex = re.compile(search_term, re.IGNORECASE)
-    filtered_expenses = []
-    for exp in expenses:
-        if regex.search(' '.join(map(str, exp.values()))):
-            filtered_expenses.append(exp)
+    # Create regex object from 'search_term' case insensitive
+    regex = re.compile(search_term, re.IGNORECASE) 
+
+    filtered_records = []
+    for row in records:
+        row_str = ' '.join(map(str, row))  # Record -> string
+        if regex.search(row_str):
+            filtered_records.append(row)
 
     for i in tree.get_children():
         tree.delete(i)
 
-    for exp in filtered_expenses:
-        tree.insert('', 'end', text=str(exp['id']), values=list(exp.values())[1:])
+    for row in filtered_records:
+        tree.insert('', 'end', text=str(row[0]), values=row[1:])
 
-    if search_term == "":
-        update_status_bar("Showing all records.")
+    if search_term == "": # If no search term is specified
+        update_status_bar(f"All records are shown.")
     else:
         update_status_bar(f"Search results for: {search_term}")
 
     load_total_accumulated()
+#  END CRUD
 
+#  DATABASE
+def connect_to_database():
+    conn = sqlite3.connect('data_base/database.db')
+    return conn
+
+
+def disconnect_from_database(conn):
+    conn.close()
+
+
+def create_table(conn):
+    cursor = conn.cursor()
+    query = """CREATE TABLE IF NOT EXISTS expenses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_service TEXT,
+            quantity INTEGER,
+            amount FLOAT,
+            responsible TEXT,
+            subtotal FLOAT,
+            category TEXT,
+            supplier TEXT,
+            payment_method TEXT,
+            date DATE,
+            due_date DATE
+            );"""
+    cursor.execute(query)
+    conn.commit()
+
+
+def add_to_db(conn, values):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+
+    query = """INSERT INTO expenses (product_service,
+            quantity,
+            amount,
+            responsible,
+            subtotal,
+            category, supplier,
+            payment_method,
+            date,
+            due_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+               
+    subtotal = values['quantity'] * values['amount']
+    
+    data = (values['product'], 
+            values['quantity'], 
+            values['amount'], 
+            values['responsible'], 
+            subtotal, values['category'], 
+            values['supplier'], 
+            values['payment_method'], 
+            values['date'], 
+            values['due_date'])
+
+    cursor.execute(query, data)
+    conn.commit()
+    last_id = cursor.lastrowid 
+    disconnect_from_database(conn)
+    return last_id
+    
+
+def delete_from_db(record_id):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    query = "DELETE FROM expenses WHERE id = ?;"
+    cursor.execute(query, (record_id,))
+    conn.commit()
+    disconnect_from_database(conn)
+
+
+def update_db(record_id, values):
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    query = """UPDATE expenses SET
+            product_service = ?,
+            quantity = ?,
+            amount = ?,
+            responsible = ?,
+            subtotal = ?,
+            category = ?,
+            supplier = ?,
+            payment_method = ?,
+            date = ?,
+            due_date = ?
+            WHERE id = ?;"""
+
+    subtotal = int(values['quantity'] * values['amount'] * 100) / 100.0
+    data = (values['product'],
+            values['quantity'],
+            values['amount'],
+            values['responsible'],
+            subtotal, values['category'],
+            values['supplier'],
+            values['payment_method'],
+            values['date'],
+            values['due_date'],
+            record_id)
+
+    cursor.execute(query, data)
+    conn.commit()
+    disconnect_from_database(conn)
+
+    
+def query_db(month=None):
+    # Query all records. But if 1 month is specified, filter by month
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    if month is not None:
+        query = "SELECT subtotal FROM expenses WHERE strftime('%m', date) = ?;"
+        cursor.execute(query, (f"{month:02d}",))
+    else:
+        query = """SELECT * FROM expenses;"""
+        cursor.execute(query)
+    rows = cursor.fetchall()
+    disconnect_from_database(conn)
+    return rows
+
+
+conn = connect_to_database()
+create_table(conn)
+#  END DATABASE
 
 #  GRAPH (DATA)
 def get_graph_data():
-    current_month = get_current_month()
-    category_totals = {}
-
-    for exp in expenses:
-        exp_date = datetime.datetime.strptime(exp['date'], "%Y-%m-%d")
-        if exp_date.month == current_month:
-            category = exp['category']
-            subtotal = exp['quantity'] * exp['amount']  # Calculate subtotal
-            if category in category_totals:
-                category_totals[category] += subtotal
-            else:
-                category_totals[category] = subtotal
-
-    graph_data = []
-    for category, total in category_totals.items():
-        graph_data.append((category, total))
-    return graph_data
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    current_month_num = str(get_current_month())
+    query = f"SELECT category, SUM(subtotal) FROM expenses WHERE strftime('%m', date) = '{current_month_num}' GROUP BY category"
+    cursor.execute(query)
+    data = cursor.fetchall()
+    disconnect_from_database(conn)
+    return data
 #  END GRAPH (DATA)
+
 #  END MODEL
 
 ##############################################################################
@@ -330,8 +461,8 @@ def get_graph_data():
 
 root = Tk()
 root.grid_rowconfigure(12, weight=1) # Expand the TreeView
-root.title('Expense Manager')
-root.geometry('1600x900')     # Standard notebook 14' window size
+root.title('Python Expense Manager')
+root.geometry('1600x900')     # Standard window size for 14' notebook
 
 #  FRAMES
 header_frame = Frame(root)
@@ -343,8 +474,8 @@ status_frame.grid(row=0, column=2, padx=0, pady=10, columnspan=3)
 graph_frame = Frame(root, borderwidth=1, relief="solid")
 graph_frame.grid(row=2, column=3, rowspan=9, padx=10, pady=0, sticky='nsew')
 
-form_frame = LabelFrame(root, text="Data Entry", padx=10, pady=10)
-form_frame.grid(row=2, column=0, columnspan=2, rowspan=6, padx=10,
+data_entry_frame = LabelFrame(root, text="Data Entry", padx=10, pady=10)
+data_entry_frame.grid(row=2, column=0, columnspan=2, rowspan=6, padx=10,
                       pady=10, sticky="we")
 
 confirmation_frame = Frame(root)
@@ -360,7 +491,6 @@ treeview_frame.grid_rowconfigure(0, weight=1)
 treeview_frame.grid_columnconfigure(0, weight=1)
 #  END FRAMES
 
-#  VARIABLES
 var_id = IntVar()
 var_product = StringVar()
 var_quantity = IntVar()
@@ -375,26 +505,24 @@ var_date = StringVar()
 var_due_date = StringVar()
 var_check_due_date = BooleanVar()
 var_search = StringVar()
-variables_to_validate = [var_product,
-                         var_quantity,
-                         var_amount,
-                         var_responsible,
-                         var_supplier,
-                         var_payment_method,
-                         var_category, var_date, 
-                         var_due_date]
-# END VARIABLES
 
-# OPTIONS
+fields_to_validate = [var_product,
+                      var_quantity,
+                      var_amount,
+                      var_responsible,
+                      var_supplier,
+                      var_payment_method,
+                      var_category, var_date, 
+                      var_due_date]
+
 category_options = ["Maintenance", "Taxes", "Services",
                     "Market", "Cleaning", "School", "Others"]
 
 payment_method_options = ["Cash", "Virtual Wallet",
-                          "Cheque", "Credit Card",
+                          "Check", "Credit Card",
                           "Debit Card", "Transfer", "Other"]
 
 responsible_options = ["Gonzalo", "Matías", "Juan"]
-# END OPTIONS
 
 #  WIDGETS
 
@@ -406,7 +534,7 @@ photo = ImageTk.PhotoImage(resized_image)
 img = Label(header_frame, image=photo)
 img.grid(row=0, column=0, padx=10, pady=5, sticky=W)
 
-title = Label(header_frame, text='EXPENSE MANAGER', font=('Arial', 20, 'bold'))
+title = Label(header_frame, text='PYTHON EXPENSE MANAGER', font=('Arial', 20, 'bold'))
 title.grid(row=0, column=1, padx=0, sticky=W)
 #  END HEADER
 
@@ -417,55 +545,55 @@ status.grid(row=0, column=0, sticky=W, padx=0, pady=0)
 #  END STATUS
 
 #  FORM
-we_width = 30
-wcb_width = we_width - 2
-l_product = Label(form_frame, text='Product:')
+entry_width = 30
+combo_width = entry_width - 2
+l_product = Label(data_entry_frame, text='Product:')
 l_product.grid(row=2, column=0, sticky=W)
-e_product = Entry(form_frame, textvariable=var_product, width=we_width)
+e_product = Entry(data_entry_frame, textvariable=var_product, width=entry_width)
 e_product.grid(row=3, column=0, sticky=W, pady=5)
 
-l_quantity = Label(form_frame, text='Quantity:')
+l_quantity = Label(data_entry_frame, text='Quantity:')
 l_quantity.grid(row=2, column=1, sticky=W, padx=10)
-e_quantity = Entry(form_frame, textvariable=var_quantity, width=we_width)
+e_quantity = Entry(data_entry_frame, textvariable=var_quantity, width=entry_width)
 e_quantity.grid(row=3, column=1, sticky=W, padx=10, pady=5)
 
-l_amount = Label(form_frame, text='Amount:')
+l_amount = Label(data_entry_frame, text='Amount:')
 l_amount.grid(row=2, column=2, sticky=SW)
-e_amount = Entry(form_frame, textvariable=var_amount, width=we_width)
+e_amount = Entry(data_entry_frame, textvariable=var_amount, width=entry_width)
 e_amount.grid(row=3, column=2, sticky=W, pady=5)
 
-l_responsible = Label(form_frame, text='Responsible:')
+l_responsible = Label(data_entry_frame, text='Responsible:')
 l_responsible.grid(row=4, column=0, sticky=SW)
-cb_responsible = ttk.Combobox(form_frame, values=responsible_options,
-                              width=wcb_width)
+cb_responsible = ttk.Combobox(data_entry_frame, values=responsible_options,
+                              width=combo_width)
 cb_responsible.grid(row=5, column=0, sticky=W, pady=5)
 
-l_category = Label(form_frame, text='Category:')
+l_category = Label(data_entry_frame, text='Category:')
 l_category.grid(row=4, column=1, sticky=SW, padx=10)
-cb_category = ttk.Combobox(form_frame, values=category_options, width=wcb_width)
+cb_category = ttk.Combobox(data_entry_frame, values=category_options, width=combo_width)
 cb_category.grid(row=5, column=1, sticky=W, padx=10, pady=5)
 
-l_supplier = Label(form_frame, text='Supplier:')
+l_supplier = Label(data_entry_frame, text='Supplier:')
 l_supplier.grid(row=4, column=2, sticky=SW)
-e_supplier = Entry(form_frame, textvariable=var_supplier, width=we_width)
+e_supplier = Entry(data_entry_frame, textvariable=var_supplier, width=entry_width)
 e_supplier.grid(row=5, column=2, sticky=W, pady=5)
 
-l_payment_method = Label(form_frame, text='Payment Method:')
+l_payment_method = Label(data_entry_frame, text='Payment Method:')
 l_payment_method.grid(row=6, column=0, sticky=SW)
-cb_payment_method = ttk.Combobox(form_frame, values=payment_method_options,
-                             width=wcb_width)
+cb_payment_method = ttk.Combobox(data_entry_frame, values=payment_method_options,
+                                 width=combo_width)
 cb_payment_method.grid(row=7, column=0, sticky=W, pady=5)
 
-l_date = Label(form_frame, text='Date:')
+l_date = Label(data_entry_frame, text='Date:')
 l_date.grid(row=6, column=1, sticky=SW, padx=10)
-cal_date = DateEntry(form_frame, width=wcb_width, background='darkblue',
-                      foreground='white', borderwidth=2)
+cal_date = DateEntry(data_entry_frame, width=combo_width, background='darkblue',
+                     foreground='white', borderwidth=2)
 cal_date.grid(row=7, column=1, sticky=W, padx=10, pady=5)
 
-l_due_date = Label(form_frame, text='Due Date:')
+l_due_date = Label(data_entry_frame, text='Due Date:')
 l_due_date.grid(row=6, column=2, sticky=SW)
-e_due_date = DateEntry(form_frame, width=wcb_width, background='darkblue',
-                          foreground='white', borderwidth=2)
+e_due_date = DateEntry(data_entry_frame, width=combo_width, background='darkblue',
+                       foreground='white', borderwidth=2)
 e_due_date.grid(row=7, column=2, sticky=W, pady=5)
 
 l_search = Label(root, text='Search:')
@@ -478,75 +606,39 @@ l_total.grid(row=8, column=2, sticky=S, pady=5)
 e_total = Entry(root, textvariable=var_total, width=20, 
                 font=('Arial', 10, 'bold'), justify='center', state='readonly')
 e_total.grid(row=9, column=2, sticky=W, padx=10, pady=5)
-# END FORM
+#  END FORM
 
 #  BUTTONS
-add_button = tk.Button(root, text='Add', command=prepare_add, bg='grey', fg='white', width=15)
-add_button.grid(row=3, column=2, sticky=tk.N)
+add_button = Button(root, text='Add', command=prepare_add, bg='grey', fg='white', width=15)
+add_button.grid(row=3, column=2, sticky=N)
 
-delete_button = tk.Button(root, text='Delete', command=prepare_delete, bg='grey', fg='white', width=15)
-delete_button.grid(row=5, column=2, sticky=tk.N)
+delete_button = Button(root, text='Delete', command=prepare_delete, bg='grey', fg='white', width=15)
+delete_button.grid(row=5, column=2, sticky=N)
 
-modify_button = tk.Button(root, text='Modify', command=modify, bg='grey', fg='white', width=15)
-modify_button.grid(row=7, column=2, sticky=tk.N)
+modify_button = Button(root, text='Modify',
+                       command=modify, bg='grey', fg='white', width=15)
+modify_button.grid(row=7, column=2, sticky=N)
 
-search_button = tk.Button(root, text='Search', command=search, bg='grey', fg='white', width=15)
-search_button.grid(row=10, column=1, sticky=tk.W)
+search_button = Button(root, text='Search', command=search, bg='grey', fg='white', width=15)
+search_button.grid(row=10, column=1, sticky=W)
 
-confirm_button = tk.Button(confirmation_frame, text='Confirm', state='disabled', command=confirm, width=15, bg='green', fg='white')
-confirm_button.grid(row=8, column=0, sticky=tk.E)
+confirm_button = Button(confirmation_frame, text='Confirm', state='disabled', command=confirm, width=15,
+                        bg='green', fg='white')
+confirm_button.grid(row=8, column=0, sticky=E)
 
-cancel_button = tk.Button(confirmation_frame, text='Cancel', state='disabled', command=cancel, width=15, bg='red', fg='white')
-cancel_button.grid(row=8, column=1, sticky=tk.W)
+cancel_button = Button(confirmation_frame, text='Cancel', state='disabled', command=cancel, width=15,
+                       bg='red', fg='white')
+cancel_button.grid(row=8, column=1, sticky=W)
 
-na_checkbutton = tk.Checkbutton(form_frame, text='N/A', variable=var_check_due_date, command=update_due_date_status)
-na_checkbutton.grid(row=6, column=2, sticky=tk.SE, padx=5)
+na_checkbutton = Checkbutton(data_entry_frame, text='N/A',
+                             variable=var_check_due_date,
+                             command=update_due_date_status)
+na_checkbutton.grid(row=6, column=2, sticky=SE, padx=5)
 
-graph_placeholder = tk.Button(graph_frame, bg='white', width=57, pady=118, state='disabled')
+graph_placeholder = Button(graph_frame, bg='white',
+                           width=57, pady=118, state='disabled')
 graph_placeholder.grid(row=0, column=0, padx=0, pady=0, sticky='e')
 #  END BUTTONS
-
-#  GRAPH
-def create_graph(graph_frame):
-    data = get_graph_data()  # Use the adapted function to get graph data
-    current_month_word = get_current_month_word()
-    categories = []
-    totals = []
-   
-    for row in data:
-        categories.append(row[0][:4])  # Truncate category name to first 4 characters
-        totals.append(row[1])
-
-    for category_option in category_options:
-        if category_option[:4] not in categories:
-            categories.append(category_option[:4])
-            totals.append(0)
-    
-    fig = Figure(figsize=(6, 4), dpi=75)
-    plot = fig.add_subplot(1, 1, 1)
-
-    colors = plt.cm.tab20(range(len(categories)))
-    
-    bars = plot.bar(categories, totals, color=colors)
-    
-    plot.set_xticks(range(len(categories)))
-    plot.set_xticklabels(categories, ha='center', fontsize='small')
-
-    for bar, total in zip(bars, totals):
-        yval = bar.get_height()
-        plot.text(bar.get_x() + bar.get_width()/2.0, yval, f'${total:.2f}', 
-                  va='bottom', ha='center', fontsize='small')
-
-    plot.set_yticks([])
-    plot.set_title(f'Total Expenses by Category in {current_month_word}', fontsize=12)
-    
-    canvas = FigureCanvasTkAgg(fig, master=graph_frame)
-    canvas.draw()
-    canvas.get_tk_widget().pack(fill='both', expand=True)
-
-graph_placeholder.destroy()
-create_graph(graph_frame)
-#  END GRAPH
 
 #  TREEVIEW
 tree = ttk.Treeview(treeview_frame)
@@ -591,9 +683,58 @@ tree.heading('col7', text='Supplier')
 tree.heading('col8', text='Payment Method')
 tree.heading('col9', text='Date')
 tree.heading('col10', text='Due Date')
-#  END TREEVIEW
+# END TREEVIEW
+
+# GRAPH
+def create_graph(graph_frame):
+    data = get_graph_data()
+    current_month_word = get_current_month_word()
+    categories = []
+    totals = []
+   
+    for row in data:
+        categories.append(row[0][:4])
+        totals.append(row[1])
+    
+    for category_option in category_options:
+        if category_option[:4] not in categories:
+            categories.append(category_option[:4])
+            totals.append(0)
+    
+    fig = Figure(figsize=(6, 4), dpi=75)
+    plot = fig.add_subplot(1, 1, 1)
+    
+    colors = plt.colormaps['tab20'](range(len(categories)))
+    
+    bar_colors = []
+    for i in range(len(categories)):
+        bar_colors.append(colors[i])
+
+    bars = plot.bar(categories, totals, color=bar_colors)
+    
+    plot.set_xticks(range(len(categories)))
+    plot.set_xticklabels(categories, ha='center', fontsize='small')
+    
+    for bar, total in zip(bars, totals):
+        yval = bar.get_height()
+        plot.text(bar.get_x() + bar.get_width()/2.0, yval, f'${total:.2f}', 
+                  va='bottom', ha='center', fontsize='small')
+
+    plot.set_yticks([])
+    plot.set_title(f'Total Expenses by Category in {current_month_word}', fontsize=12)
+    
+    canvas = FigureCanvasTkAgg(fig, master=graph_frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill='both', expand=True)
+
+graph_placeholder.destroy()
+create_graph(graph_frame)
+#  END GRAPH
 
 #  END WIDGETS
 
+update_total_accumulated_label()
+load_total_accumulated()
+load_data_into_treeview()
 root.mainloop()
 #  END VIEW

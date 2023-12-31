@@ -1,78 +1,70 @@
 # Expense Manager
 
 ## Description
-Expense Manager is a personal project developed using Python and Tkinter, designed for efficient management of personal or business expenses. It features a SQLite3 database for data persistence.
+Expense Manager is a Python and Tkinter-based application tailored for management of personal or business expenses. Utilizing SQLite3 for data persistence, it offers a solution for expense tracking and visualization.
 
-## Technical Features
-- **SQLite3 Database Integration:** Utilizes SQLite3 for data storage and retrieval.
-- **Python & Tkinter:** Built with Python's standard GUI toolkit, Tkinter, for user interface.
-- **MVC Design Pattern:** Implements the Model-View-Controller (MVC) design pattern.
-- **Matplotlib Integration:** Includes Matplotlib for rendering graphical representations of expenses.
-- **Data Validation:** Incorporates thorough validation checks to maintain data integrity.
-
-## Installation
+## Key Features
+- **SQLite3 Database Integration:** Data storage and retrieval for expense records.
+- **Python & Tkinter Interface:** Interface built with Python's Tkinter.
+- **MVC Design Pattern:** Organized code structure using the Model-View-Controller paradigm.
+- **Graphical Data Visualization:** Matplotlib integration to graphically represent expenses.
+- **Data Validation:** Ensures the integrity and accuracy of input data.
+- **CRUD Operations:** Full Create, Read, Update, Delete functionalities for expense management.
 
 ### Prerequisites
 - Python 3.x
 - Virtual environment tool
 
 ### Setup and Virtual Environment
-1. **Clone the repository:**
-```
-git clone https://github.com/your-github-username/tkinter_expense_manager.git
-```
-2. **Navigate to the project directory:**
-```
-cd tkinter_expense_manager
-```
-3. **Create a virtual environment:**
-```
-python -m venv expense_manager
-```
-4. **Activate the virtual environment:**
-- On Windows:
-  ```
-  .\expense_manager\Scripts\activate
-  ```
-- On Unix or MacOS:
-  ```
-  source expense_manager/bin/activate
-  ```
-5. **Install dependencies:**
-```
-pip install -r requirements.txt
-```
-6. **Run the application:**
-```
-python app/tkinter_expense_manager.py.py
-```
+1. Clone the Repository:
+   git clone https://github.com/your-github-username/tkinter_expense_manager.git
+
+2. Navigate to the Project Directory:
+   cd tkinter_expense_manager
+
+3. Create and Activate a Virtual Environment:
+   - On Windows:
+     python -m venv expense_manager
+     .\expense_manager\Scripts\activate
+
+   - On Unix or MacOS:
+     python3 -m venv expense_manager
+     source expense_manager/bin/activate
+
+4. Install Dependencies:
+   pip install -r requirements.txt
+
+5. Run the Application:
+   python app/tkinter_expense_manager.py
+
 ## Usage
-- **Add Expense Records:** Input details of expenses via a form interface.
-- **Manage Expenses:** Perform CRUD operations - Create, Read, Update, and Delete.
-- **Search and Filter:** Utilize the search feature for quick access to records.
-- **Data Visualization:** View monthly expenses in a graphical format.
-- **Data Storage:** All data is stored and managed through a SQLite3 database.
+- **Add Expense Records:** Capture expense details through an intuitive form.
+- **Manage Expenses:** Perform CRUD operations on expense data.
+- **Search and Filter:** Quickly find specific expense records.
+- **Visualize Data:** Monthly expenses visualized in bar graphs.
+- **SQLite3 Data Storage:** Reliable data management with SQLite3.
 
 ## Design and Architecture
-- **MVC Pattern:** Separates the application logic (Model), UI layer (View), and the control layer (Controller) for better maintainability and scalability.
-- **SQLite3 Database:** A lightweight database used for storing application data.
-- **Pythonic Principles:** The application adheres to Pythonic principles, making it straightforward to understand and modify.
+- **Model-View-Controller (MVC):** Separates logic, UI, and control for scalability and maintainability.
+- **SQLite3 Database:** Lightweight and efficient data management.
+- **Pythonic Approach:** The codebase follows Pythonic principles for clarity and ease of maintenance.
 
-## Data model
+## Data Model Schema
 
-| Column             | Data Type | Properties                  |
-|--------------------|-----------|-----------------------------|
-| id                 | INTEGER   | PRIMARY KEY, AUTOINCREMENT  |
-| producto_servicio  | TEXT      |                             |
-| cantidad           | INTEGER   |                             |
-| monto              | FLOAT     |                             |
-| responsable        | TEXT      |                             |
-| subtotal           | FLOAT     |                             |
-| rubro              | TEXT      |                             |
-| proveedor          | TEXT      |                             |
-| medio_de_pago      | TEXT      |                             |
-| fecha              | DATE      |                             |
-| vencimiento        | DATE      |                             |
+| Column            | Data Type | Properties                  |
+|-------------------|-----------|-----------------------------|
+| id                | INTEGER   | PRIMARY KEY, AUTOINCREMENT  |
+| product_service   | TEXT      |                             |
+| quantity          | INTEGER   |                             |
+| amount            | FLOAT     |                             |
+| responsible       | TEXT      |                             |
+| subtotal          | FLOAT     |                             |
+| category          | TEXT      |                             |
+| supplier          | TEXT      |                             |
+| payment_method    | TEXT      |                             |
+| date              | DATE      |                             |
+| due_date          | DATE      |                             |
 
 ## Note
-This is a personal project, designed and developed for educational and demonstrational purposes.
+This project is developed for educational and demonstration purposes. It's a personal project aimed at showcasing Python and Tkinter capabilities in building desktop applications.
+
