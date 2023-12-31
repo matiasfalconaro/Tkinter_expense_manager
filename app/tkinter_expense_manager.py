@@ -660,25 +660,11 @@ fields_to_validate = [var_product,
                       var_category, var_date,
                       var_due_date]
 
-category_options = ["Maintenance",
-                    "Taxes",
-                    "Services",
-                    "Market",
-                    "Cleaning",
-                    "School",
-                    "Others"]
+category_options = []  # Customizable 'Category' dropdown list
 
-payment_method_options = ["Cash",
-                          "Virtual Wallet",
-                          "Check",
-                          "Credit Card",
-                          "Debit Card",
-                          "Transfer",
-                          "Other"]
+payment_method_options = []  # # Customizable 'Payment method' dropdown list
 
-responsible_options = ["Matías",
-                       "Gonzalo",
-                       "Juan"]
+responsible_options = []  # # Customizable 'Responsible' dropdown list
 
 # WIDGETS
 
@@ -1046,7 +1032,7 @@ tree.column('col6',
             minwidth=50,
             stretch=NO)  # Category
 tree.column('col7',
-            width=180,
+            width=190,
             minwidth=50,
             stretch=NO)  # Supplier
 tree.column('col8',
