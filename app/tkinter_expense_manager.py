@@ -529,13 +529,23 @@ def get_graph_data() -> List[Tuple]:
     based on categories and their subtotals for the current month."""
     conn = connect_to_database()
     cursor = conn.cursor()
-    current_month_num = str(get_current_month())
+
+    current_month_num = get_current_month()
+    if not isinstance(current_month_num, int) or not (1 <= current_month_num <= 12):
+        print("Invalid month number.")
+        disconnect_from_database(conn)
+        return []
+
+    formatted_month = f"{current_month_num:02d}"  # Format as two-digit month
+
     query = f"""SELECT category, SUM(subtotal)
                 FROM expenses
-                WHERE strftime('%m', date) = '{current_month_num}'
+                WHERE strftime('%m', date) = '{formatted_month}'
                 GROUP BY category"""
+    
     cursor.execute(query)
     data = cursor.fetchall()
+
     disconnect_from_database(conn)
     return data
 # END GRAPH (DATA)
