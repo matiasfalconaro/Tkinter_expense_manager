@@ -4,42 +4,33 @@ import re
 
 from tkinter.messagebox import showinfo
 
-from view import(cal_date,
-                 cancel_button,
-                 cb_category,
-                 cb_payment_method,
-                 cb_responsible,
-                 confirm_button,
-                 create_graph,
-                 e_due_date,
-                 graph_frame,
-                 l_total,
-                 root,
-                 status,
-                 tree,
-                 var_amount,
-                 var_category,
-                 var_check_due_date,
-                 var_date,
-                 var_due_date,
-                 var_payment_method,
-                 var_product,
-                 var_quantity,
-                 var_responsible,
-                 var_search,
-                 var_supplier,
-                 var_total,
-                 update_status_bar,
-                 load_total_accumulated,
-                 clear_form,
-                 
-                 )
+from view import (cal_date,
+                  cancel_button,
+                  cb_category,
+                  cb_payment_method,
+                  cb_responsible,
+                  confirm_button,
+                  create_graph,
+                  e_due_date,
+                  graph_frame,
+                  tree,
+                  var_amount,
+                  var_check_due_date,
+                  var_date,
+                  var_due_date,
+                  var_product,
+                  var_quantity,
+                  var_search,
+                  var_supplier,
+                  update_status_bar,
+                  load_total_accumulated,
+                  clear_form)
 
-from model import(query_db,
-                  update_db,
-                  connect_to_database,
-                  add_to_db,
-                  delete_from_db)
+from model import (query_db,
+                   update_db,
+                   connect_to_database,
+                   add_to_db,
+                   delete_from_db)
 
 
 def add() -> None:

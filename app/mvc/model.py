@@ -4,6 +4,7 @@ from typing import Optional, List, Tuple
 
 from controller import get_current_month
 
+
 # DATABASE
 def connect_to_database() -> sqlite3.Connection:
     """Establishes and returns a connection to the SQLite database."""
@@ -152,7 +153,8 @@ def get_graph_data() -> List[Tuple]:
     cursor = conn.cursor()
 
     current_month_num = get_current_month()
-    if not isinstance(current_month_num, int) or not (1 <= current_month_num <= 12):
+    if (not isinstance(current_month_num, int)
+            or not (1 <= current_month_num <= 12)):
         print("Invalid month number.")
         disconnect_from_database(conn)
         return []
@@ -163,7 +165,7 @@ def get_graph_data() -> List[Tuple]:
                 FROM expenses
                 WHERE strftime('%m', date) = '{formatted_month}'
                 GROUP BY category"""
-    
+
     cursor.execute(query)
     data = cursor.fetchall()
 
