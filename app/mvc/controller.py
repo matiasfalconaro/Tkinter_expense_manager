@@ -4,7 +4,7 @@ import re
 
 from tkinter.messagebox import showinfo
 
-from .utils import get_current_month
+from utils.utils import get_current_month
 
 
 class Controller:

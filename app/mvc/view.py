@@ -336,7 +336,7 @@ class View:
 
         # VERSION
         version = Label(version_frame,
-                        text="Version 1.0.0",
+                        text="Version 1.1.0",
                         font=('Arial', 10, 'bold'),
                         bg='grey',
                         fg='white')

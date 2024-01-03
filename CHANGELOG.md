@@ -1,9 +1,10 @@
 # Changelog
 Format is loosely related to https://keepachangelog.com/en/1.1.0/.
-Version numers follow this convention:
+Version numbers follow this convention:
 - Version: `X.Y.Z`
-- `X.Y` is related to the functional documentation version
-- `.Z` is the patch number, related to new functionalities, bug fixes, corresponding to the base version.
+- `X` is the major version number, related to new functional designs and major UI changes.
+- `Y` is the minor version number, related to new functionalities and major refactors.
+- `Z` is the patch version number, for bug fixes corresponding to the base version.
 
 ### Comments
 - (#XX) refers to issue number
@@ -13,7 +14,13 @@ Version numers follow this convention:
   - Fixed: fix issues that may span over the complete project.
   - Changed: existing features which have undergone some improvements.
 
-## [1.0.0] - MVP
+
+## [1.1.0] - v1.1.0
+### Added
+- Implement strict MVC pattern. #15
+
+
+## [1.0.0] - [MVP] v1.0.0
 ### Added
 - Create app UI mockup. #1
 - Create backend logic for controller and model. #3

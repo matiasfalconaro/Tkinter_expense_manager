@@ -3,6 +3,16 @@
 ## Description
 Expense Manager is a Python and Tkinter-based application tailored for management of personal or business expenses. Utilizing SQLite3 for data persistence, it offers a solution for expense tracking and visualization.
 
+## Steps to Start Collaborating
+- Assign yourself an issue.
+- Relate the issue with the next available branch name.
+- Create a branch from main, named `nextbranchNr_branch_name`.
+- Push changes to that branch. Once the functionality is completed, tag it as ready-for-review.
+- The reviewer will indicate whether changes need to be made (by removing the tag) or not.
+- Once the changes are finalized, the reviewer will merge into the main branch.
+
+IMPORTANT: Do NOT commit to the main branch.
+
 ## Key Features
 - **SQLite3 Database Integration:** Data storage and retrieval for expense records.
 - **Python & Tkinter Interface:** Interface built with Python's Tkinter.
@@ -15,27 +25,12 @@ Expense Manager is a Python and Tkinter-based application tailored for managemen
 - Python 3.x
 - Virtual environment tool
 
-### Setup and Virtual Environment
-1. Clone the Repository:
-   git clone https://github.com/your-github-username/tkinter_expense_manager.git
-
-2. Navigate to the Project Directory:
-   cd tkinter_expense_manager
-
-3. Create and Activate a Virtual Environment:
-   - On Windows:
-     python -m venv expense_manager
-     .\expense_manager\Scripts\activate
-
-   - On Unix or MacOS:
-     python3 -m venv expense_manager
-     source expense_manager/bin/activate
-
-4. Install Dependencies:
+### Setup
+1. Install Dependencies:
    pip install -r requirements.txt
 
-5. Run the Application:
-   python app/tkinter_expense_manager.py
+2. Run the Application:
+   python app/main.py
 
 ## Usage
 - **Add Expense Records:** Capture expense details through an intuitive form.
@@ -44,12 +39,7 @@ Expense Manager is a Python and Tkinter-based application tailored for managemen
 - **Visualize Data:** Monthly expenses visualized in bar graphs.
 - **SQLite3 Data Storage:** Reliable data management with SQLite3.
 
-## Design and Architecture
-- **Model-View-Controller (MVC):** Separates logic, UI, and control for scalability and maintainability.
-- **SQLite3 Database:** Lightweight and efficient data management.
-- **Pythonic Approach:** The codebase follows Pythonic principles for clarity and ease of maintenance.
-
-## Data Model Schema
+## Data Model
 
 | Column            | Data Type | Properties                  |
 |-------------------|-----------|-----------------------------|
@@ -65,6 +55,5 @@ Expense Manager is a Python and Tkinter-based application tailored for managemen
 | date              | DATE      |                             |
 | due_date          | DATE      |                             |
 
-## Note
-This project is developed for educational and demonstration purposes. It's a personal project aimed at showcasing Python and Tkinter capabilities in building desktop applications.
-
+## About the project
+'Expense Manager' is developed for educational purposes, demonstrating Python and Tkinter's capabilities in desktop application development.
