@@ -4,7 +4,7 @@ from typing import Optional, List, Tuple
 
 
 class Model:
-
+    """Handles database operations"""
     def __init__(self):
         self.conn = self.connect_to_database()
 

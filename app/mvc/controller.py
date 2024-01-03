@@ -8,6 +8,7 @@ from .utils import get_current_month
 
 
 class Controller:
+    """Manages interactions between the model and view"""
 
     def __init__(self, model):
         self.model = model

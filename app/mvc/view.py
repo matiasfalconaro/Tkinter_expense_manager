@@ -31,7 +31,7 @@ from .model import Model
 
 
 class View:
-
+    """Handles UI operations"""
     category_options = []  # Customizable 'Category' dropdown list
 
     payment_method_options = []  # Customizable 'Payment method' dropdown list
