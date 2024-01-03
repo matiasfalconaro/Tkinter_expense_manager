@@ -28,7 +28,12 @@ from view import(cal_date,
                  var_responsible,
                  var_search,
                  var_supplier,
-                 var_total)
+                 var_total,
+                 update_status_bar,
+                 load_total_accumulated,
+                 clear_form,
+                 
+                 )
 
 from model import(query_db,
                   update_db,
@@ -192,21 +197,6 @@ def search() -> None:
 # END CRUD
 
 
-def update_status_bar(message: str) -> None:
-    """Updates the text of the status bar with the provided message."""
-    status.config(text=message)  # Update label text
-    root.update_idletasks()  # Force UI update
-
-
-def update_due_date_status() -> None:
-    """Enables or disables the due date entry
-    based on the state of a check variable."""
-    if var_check_due_date.get():
-        e_due_date.config(state='disabled')
-    else:
-        e_due_date.config(state='normal')
-
-
 def validate_fields() -> bool:
     """Validates a set of fields,
     returning True if all fields are valid, False otherwise."""
@@ -227,20 +217,6 @@ def validate_fields() -> bool:
             return False
 
     return True
-
-
-def clear_form() -> None:
-    """Resets all form fields to their default (empty) values."""
-    var_amount.set('')
-    var_product.set('')
-    var_quantity.set('')
-    var_supplier.set('')
-    var_responsible.set('')
-    var_category.set('')
-    var_payment_method.set('')
-    cb_responsible.set('')
-    cb_category.set('')
-    cb_payment_method.set('')
 
 
 def prepare_add() -> None:
@@ -321,16 +297,6 @@ def apply_modification(purchase_id: int, db_id: int) -> None:
     confirm()
 
 
-def load_data_into_treeview() -> None:
-    """Loads data from the database and populates it into a treeview widget."""
-    records = query_db()
-    for row in records:
-        tree.insert('',
-                    'end',
-                    text=str(row[0]),
-                    values=row[1:])
-
-
 def get_current_month() -> int:
     """Returns the current month as an integer."""
     return datetime.datetime.now().month
@@ -361,17 +327,3 @@ def get_total_accumulated() -> float:
         total_accumulated += row[0]
 
     return total_accumulated
-
-
-def load_total_accumulated() -> float:
-    """Loads and returns the total accumulated value for the current month,
-    updating a Tkinter variable with this value."""
-    total_accumulated = get_total_accumulated()
-    var_total.set(f"$ {total_accumulated:.2f}")
-    return total_accumulated
-
-
-def update_total_accumulated_label() -> None:
-    """Updates the label to display the total for the current month."""
-    current_month_str = get_current_month_word()
-    l_total.config(text=f"Total {current_month_str}:")

@@ -29,17 +29,127 @@ from tkcalendar import DateEntry
 
 from controller import (cancel,
                         confirm,
+                        search,
+                        modify,
                         prepare_add,
                         prepare_delete,
                         get_current_month_word,
-                        load_total_accumulated,
-                        load_data_into_treeview,
-                        update_due_date_status,
-                        update_total_accumulated_label)
+                        get_total_accumulated)
 
 from model import(get_graph_data,
-                  modify,
-                  search)
+                  query_db)
+
+
+# METHODS
+def load_total_accumulated() -> float:
+    """Loads and returns the total accumulated value for the current month,
+    updating a Tkinter variable with this value."""
+    total_accumulated = get_total_accumulated()
+    var_total.set(f"$ {total_accumulated:.2f}")
+    return total_accumulated
+
+
+def update_total_accumulated_label() -> None:
+    """Updates the label to display the total for the current month."""
+    current_month_str = get_current_month_word()
+    l_total.config(text=f"Total {current_month_str}:")
+
+
+def clear_form() -> None:
+    """Resets all form fields to their default (empty) values."""
+    var_amount.set('')
+    var_product.set('')
+    var_quantity.set('')
+    var_supplier.set('')
+    var_responsible.set('')
+    var_category.set('')
+    var_payment_method.set('')
+    cb_responsible.set('')
+    cb_category.set('')
+    cb_payment_method.set('')
+
+
+def update_status_bar(message: str) -> None:
+    """Updates the text of the status bar with the provided message."""
+    status.config(text=message)  # Update label text
+    root.update_idletasks()  # Force UI update
+
+
+def update_due_date_status() -> None:
+    """Enables or disables the due date entry
+    based on the state of a check variable."""
+    if var_check_due_date.get():
+        e_due_date.config(state='disabled')
+    else:
+        e_due_date.config(state='normal')
+        
+
+def load_data_into_treeview() -> None:
+    """Loads data from the database and populates it into a treeview widget."""
+    records = query_db()
+    for row in records:
+        tree.insert('',
+                    'end',
+                    text=str(row[0]),
+                    values=row[1:])
+
+
+# GRAPH
+def create_graph(graph_frame: Frame) -> None:
+    """Generates and displays a bar graph of monthly expenses
+    by category in the specified Tkinter frame."""
+    data = get_graph_data()
+    current_month_word = get_current_month_word()
+    categories = []
+    totals = []
+
+    for row in data:
+        categories.append(row[0][:4])
+        totals.append(row[1])
+
+    for category_option in category_options:
+        if category_option[:4] not in categories:
+            categories.append(category_option[:4])
+            totals.append(0)
+
+    fig = Figure(figsize=(6, 4), dpi=75)
+    plot = fig.add_subplot(1, 1, 1)
+
+    colors = plt.colormaps['tab20'](range(len(categories)))
+
+    bar_colors = []
+    for i in range(len(categories)):
+        bar_colors.append(colors[i])
+
+    bars = plot.bar(categories,
+                    totals,
+                    color=bar_colors)
+
+    plot.set_xticks(range(len(categories)))
+    plot.set_xticklabels(categories,
+                        ha='center',
+                        fontsize='small')
+
+    for bar, total in zip(bars, totals):
+        yval = bar.get_height()
+        plot.text(bar.get_x() + bar.get_width()/2.0,
+                yval,
+                f'${total:.2f}',
+                va='bottom',
+                ha='center',
+                fontsize='small')
+
+    plot.set_yticks([])
+    plot.set_title(f'Total Expenses by Category in {current_month_word}',
+                fontsize=12)
+
+    canvas = FigureCanvasTkAgg(fig,
+                            master=graph_frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill='both',
+                                expand=True)
+# END GRAPH
+# END METHODS
 
 
 # VIEW
@@ -569,69 +679,9 @@ tree.heading('col10',
             text='Due Date')
 # END TREEVIEW
 
-
-# GRAPH
-def create_graph(graph_frame: Frame) -> None:
-    """Generates and displays a bar graph of monthly expenses
-    by category in the specified Tkinter frame."""
-    data = get_graph_data()
-    current_month_word = get_current_month_word()
-    categories = []
-    totals = []
-
-    for row in data:
-        categories.append(row[0][:4])
-        totals.append(row[1])
-
-    for category_option in category_options:
-        if category_option[:4] not in categories:
-            categories.append(category_option[:4])
-            totals.append(0)
-
-    fig = Figure(figsize=(6, 4), dpi=75)
-    plot = fig.add_subplot(1, 1, 1)
-
-    colors = plt.colormaps['tab20'](range(len(categories)))
-
-    bar_colors = []
-    for i in range(len(categories)):
-        bar_colors.append(colors[i])
-
-    bars = plot.bar(categories,
-                    totals,
-                    color=bar_colors)
-
-    plot.set_xticks(range(len(categories)))
-    plot.set_xticklabels(categories,
-                        ha='center',
-                        fontsize='small')
-
-    for bar, total in zip(bars, totals):
-        yval = bar.get_height()
-        plot.text(bar.get_x() + bar.get_width()/2.0,
-                yval,
-                f'${total:.2f}',
-                va='bottom',
-                ha='center',
-                fontsize='small')
-
-    plot.set_yticks([])
-    plot.set_title(f'Total Expenses by Category in {current_month_word}',
-                fontsize=12)
-
-    canvas = FigureCanvasTkAgg(fig,
-                            master=graph_frame)
-    canvas.draw()
-    canvas.get_tk_widget().pack(fill='both',
-                                expand=True)
-
-
+# END WIDGETS
 graph_placeholder.destroy()
 create_graph(graph_frame)
-# END GRAPH
-
-# END WIDGETS
-
 update_total_accumulated_label()
 load_total_accumulated()
 load_data_into_treeview()
