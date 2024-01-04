@@ -120,9 +120,8 @@ class View:
         categories = []
         totals = []
 
-        for row in data:
-            categories.append(row[0][:4])
-            totals.append(row[1])
+        categories = [row[0][:4] for row in data]
+        totals = [row[1] for row in data]
 
         for category_option in self.category_options:
             if category_option[:4] not in categories:
@@ -134,9 +133,7 @@ class View:
 
         colors = plt.colormaps['tab20'](range(len(categories)))
 
-        bar_colors = []
-        for i in range(len(categories)):
-            bar_colors.append(colors[i])
+        bar_colors = [colors[i] for i in range(len(categories))]
 
         bars = plot.bar(categories,
                         totals,

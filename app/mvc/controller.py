@@ -160,11 +160,10 @@ class Controller:
 
         regex = re.compile(search_term, re.IGNORECASE)
 
-        filtered_records = []
-        for row in records:
-            row_str = ' '.join(map(str, row))
-            if regex.search(row_str):
-                filtered_records.append(row)
+        filtered_records = [
+            row for row in records 
+            if regex.search(' '.join(map(str, row)))
+        ]
 
         for i in self.view.tree.get_children():
             self.view.tree.delete(i)
@@ -298,8 +297,6 @@ class Controller:
         current_month = get_current_month()
         records = self.model.query_db(month=current_month)
 
-        total_accumulated = 0
-        for row in records:
-            total_accumulated += row[0]
+        total_accumulated = sum(row[0] for row in records)
 
         return total_accumulated
