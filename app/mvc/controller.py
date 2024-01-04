@@ -28,11 +28,10 @@ class Controller:
         """Adds a new record to the database and updates the UI accordingly."""
         self.view.var_date.set(
             self.view.cal_date.get_date().strftime("%Y-%m-%d"))
-        if self.view.var_check_due_date.get():
-            due_date_value = 'N/A'
-        else:
-            due_date = self.view.e_due_date.get_date()
-            due_date_value = due_date.strftime("%Y-%m-%d")
+        due_date_value = (
+            'N/A' if self.view.var_check_due_date.get() 
+            else self.view.e_due_date.get_date().strftime("%Y-%m-%d")
+        )
 
         self.view.var_due_date.set(due_date_value)
 
@@ -154,8 +153,8 @@ class Controller:
         """Searches the database records based on the given search term
         and updates the treeview with the filtered results."""
         search_term = self.view.var_search.get()
-        if "*" in search_term:
-            search_term = ""
+        
+        search_term = "" if "*" in search_term else search_term
 
         records = self.model.query_db()
 
@@ -173,10 +172,11 @@ class Controller:
         for row in filtered_records:
             self.view.tree.insert('', 'end', text=str(row[0]), values=row[1:])
 
-        if search_term == "":
-            self.view.update_status_bar("All records are shown.")
-        else:
-            self.view.update_status_bar(f"Search results for: {search_term}")
+        status_message = (
+            "All records are shown." if search_term == "" 
+            else f"Search results for: {search_term}"
+        )
+        self.view.update_status_bar(status_message)
 
         self.view.load_total_accumulated()
 
@@ -280,10 +280,11 @@ class Controller:
     def get_current_month_word(self, locale_setting=None):
         """Returns the current month's name in the specified locale.
         If no locale is specified, the system's default locale is used."""
-        if locale_setting:
-            locale.setlocale(locale.LC_TIME, locale_setting)
-        else:
-            locale.setlocale(locale.LC_TIME, locale.getdefaultlocale())
+        
+        locale.setlocale(
+            locale.LC_TIME, 
+            locale_setting if locale_setting else locale.getdefaultlocale()
+        )
 
         current_month = datetime.datetime.now().month
         current_month_str = datetime.datetime.strptime(str(current_month),

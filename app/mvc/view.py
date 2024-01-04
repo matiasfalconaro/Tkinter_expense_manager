@@ -99,10 +99,8 @@ class View:
     def update_due_date_status(self) -> None:
         """Enables or disables the due date entry
         based on the state of a check variable."""
-        if self.var_check_due_date.get():
-            self.e_due_date.config(state='disabled')
-        else:
-            self.e_due_date.config(state='normal')
+        state = 'disabled' if self.var_check_due_date.get() else 'normal'
+        self.e_due_date.config(state=state)
 
     def load_data_into_treeview(self) -> None:
         """Loads data from the database and
