@@ -14,26 +14,33 @@ Version numbers follow this convention:
   - Fixed: fix issues that may span over the complete project.
   - Changed: existing features which have undergone some improvements.
 
-
-## [1.1.0] - [OOP] v1.1.0
+## [v1.1.1] - [RAS] 2024-01-05
 ### Added
-- Implement strict MVC pattern. #15
-
-
-## [1.0.0] - [MVP] v1.0.0
-### Added
-- Create app UI mockup. #1
-- Create backend logic for controller and model. #3
-- Implement data persistence. #7
-- Implement Flake8. #9
-- Create documenation. #11
-- Upload mock data to database. #20
-- Create PDF documentation. #22
-- Create CHANGELOG. #13
+- Set up logging. (#36)
 
 ### Changed
-- Update README.md. #5
+- Optimize code performance and standards. (#16)
+
+
+## [v1.1.0] - [OOP] 2024-01-03
+### Added
+- Implement strict MVC pattern. (#15)
+
+
+## [v1.0.0] - [MVP] 2024-01-01
+### Added
+- Create app UI mockup. (#1)
+- Create backend logic for controller and model. (#3)
+- Implement data persistence. (#7)
+- Implement Flake8. (#9)
+- Create documenation. (#11)
+- Upload mock data to database. (#20)
+- Create PDF documentation. (#22)
+- Create CHANGELOG. (#13)
+
+### Changed
+- Update README.md. (#5)
 
 ### Fixed
-- Fix layout. #14
-- Fix get_graph_data function to ensure the month is correctly formatted. #18
+- Fix layout. (#14)
+- Fix get_graph_data function to ensure the month is correctly formatted. (#18)
