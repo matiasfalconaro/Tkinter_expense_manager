@@ -93,85 +93,75 @@ class View:
 
     def update_status_bar(self, message: str) -> None:
         """Updates the text of the status bar with the provided message."""
-        self.status.config(text=message)  # Update label text
+        self.status.config(text=message)
         self.root.update_idletasks()  # Force UI update
 
     def update_due_date_status(self) -> None:
         """Enables or disables the due date entry
         based on the state of a check variable."""
-        if self.var_check_due_date.get():
-            self.e_due_date.config(state='disabled')
-        else:
-            self.e_due_date.config(state='normal')
+        state = 'disabled' if self.var_check_due_date.get() else 'normal'
+        self.e_due_date.config(state=state)
 
     def load_data_into_treeview(self) -> None:
-        """Loads data from the database and
-        populates it into a treeview widget."""
-        records = self.controller.get_query_db()
-        for row in records:
-            self.tree.insert('',
-                             'end',
-                             text=str(row[0]),
-                             values=row[1:])
+        """Loads data from the database
+        and populates it into a treeview widget."""
+        try:
+            records = self.controller.get_query_db()
+            for row in records:
+                self.tree.insert('',
+                                 'end',
+                                 text=str(row[0]),
+                                 values=row[1:])
+        except Exception as e:
+            print(f"Error loading data into treeview: {e}")
 
-    # GRAPH
     def create_graph(self, graph_frame: Frame) -> None:
         """Generates and displays a bar graph of monthly expenses
         by category in the specified Tkinter frame."""
-        data = self.controller.get_get_graph_data()
-        current_month_word = self.controller.get_current_month_word()
-        categories = []
-        totals = []
+        try:
+            data = self.controller.get_get_graph_data()
+            current_month_word = self.controller.get_current_month_word()
 
-        for row in data:
-            categories.append(row[0][:4])
-            totals.append(row[1])
+            categories = [row[0][:4] for row in data]
+            totals = [row[1] for row in data]
 
-        for category_option in self.category_options:
-            if category_option[:4] not in categories:
-                categories.append(category_option[:4])
-                totals.append(0)
+            for category_option in self.category_options:
+                if category_option[:4] not in categories:
+                    categories.append(category_option[:4])
+                    totals.append(0)
 
-        fig = Figure(figsize=(6, 4), dpi=75)
-        plot = fig.add_subplot(1, 1, 1)
+            fig = Figure(figsize=(6, 4), dpi=75)
+            plot = fig.add_subplot(1, 1, 1)
 
-        colors = plt.colormaps['tab20'](range(len(categories)))
+            colors = plt.colormaps['tab20'](range(len(categories)))
+            bar_colors = [colors[i] for i in range(len(categories))]
 
-        bar_colors = []
-        for i in range(len(categories)):
-            bar_colors.append(colors[i])
+            bars = plot.bar(categories, totals, color=bar_colors)
 
-        bars = plot.bar(categories,
-                        totals,
-                        color=bar_colors)
+            plot.set_xticks(range(len(categories)))
+            plot.set_xticklabels(categories, ha='center', fontsize='small')
 
-        plot.set_xticks(range(len(categories)))
-        plot.set_xticklabels(categories,
-                             ha='center',
-                             fontsize='small')
+            for bar, total in zip(bars, totals):
+                yval = bar.get_height()
+                plot.text(bar.get_x() + bar.get_width()/2.0,
+                          yval,
+                          f'${total:.2f}',
+                          va='bottom',
+                          ha='center',
+                          fontsize='small')
 
-        for bar, total in zip(bars, totals):
-            yval = bar.get_height()
-            plot.text(bar.get_x() + bar.get_width()/2.0,
-                      yval,
-                      f'${total:.2f}',
-                      va='bottom',
-                      ha='center',
-                      fontsize='small')
+            plot.set_yticks([])
+            plot.set_title(
+                f'Total Expenses by Category in {current_month_word}',
+                fontsize=12
+            )
 
-        plot.set_yticks([])
-        plot.set_title(f'Total Expenses by Category in {current_month_word}',
-                       fontsize=12)
+            canvas = FigureCanvasTkAgg(fig, master=graph_frame)
+            canvas.draw()
+            canvas.get_tk_widget().pack(fill='both', expand=True)
+        except Exception as e:
+            print(f"Error creating graph: {e}")
 
-        canvas = FigureCanvasTkAgg(fig,
-                                   master=graph_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill='both',
-                                    expand=True)
-    # END GRAPH
-    # END METHODS
-
-    # VIEW
     def create_view(self):
         self.root = Tk()
         self.root.grid_columnconfigure(0,
@@ -295,6 +285,7 @@ class View:
                                    self.var_category,
                                    self.var_date,
                                    self.var_due_date]
+
         # WIDGETS
 
         # HEADER
@@ -342,7 +333,7 @@ class View:
                         fg='white')
         version.grid(row=0,
                      column=1,
-                     sticky='ew')  # Center the label in the frame
+                     sticky='ew')
 
         # END VERSION
 
@@ -708,4 +699,3 @@ class View:
         self.load_total_accumulated()
         self.load_data_into_treeview()
         self.root.mainloop()
-        # END VIEW

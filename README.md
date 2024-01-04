@@ -5,7 +5,7 @@ Expense Manager is a Python and Tkinter-based application tailored for managemen
 
 ## Steps to Start Collaborating
 - Assign yourself an issue.
-- Relate the issue with the next available branch name.
+- Relate the issue with the next available branch number.
 - Create a branch from main, named `nextbranchNr_branch_name`.
 - Push changes to that branch. Once the functionality is completed, tag it as ready-for-review.
 - The reviewer will indicate whether changes need to be made (by removing the tag) or not.

@@ -4,15 +4,15 @@ from mvc.controller import Controller
 
 
 def main():
+    try:
+        model = Model()
+        controller = Controller(model)
+        view = View(controller)
 
-    model = Model()
-    controller = Controller(model)
-    # Create the View instance and pass the Controller reference to it
-    view = View(controller)
-    # Provide the View instance to the Controller
-    controller.set_view(view)
-
-    view.create_view()  # Start the application
+        controller.set_view(view)
+        view.create_view()
+    except Exception as e:
+        print(f"An error occurred during application initialization: {e}")
 
 
 if __name__ == "__main__":
