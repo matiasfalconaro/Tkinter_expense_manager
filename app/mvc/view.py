@@ -93,7 +93,7 @@ class View:
 
     def update_status_bar(self, message: str) -> None:
         """Updates the text of the status bar with the provided message."""
-        self.status.config(text=message)  # Update label text
+        self.status.config(text=message)
         self.root.update_idletasks()  # Force UI update
 
     def update_due_date_status(self) -> None:
@@ -114,7 +114,6 @@ class View:
                              text=str(row[0]),
                              values=row[1:])
 
-    # GRAPH
     def create_graph(self, graph_frame: Frame) -> None:
         """Generates and displays a bar graph of monthly expenses
         by category in the specified Tkinter frame."""
@@ -168,10 +167,7 @@ class View:
         canvas.draw()
         canvas.get_tk_widget().pack(fill='both',
                                     expand=True)
-    # END GRAPH
-    # END METHODS
 
-    # VIEW
     def create_view(self):
         self.root = Tk()
         self.root.grid_columnconfigure(0,
@@ -295,6 +291,7 @@ class View:
                                    self.var_category,
                                    self.var_date,
                                    self.var_due_date]
+
         # WIDGETS
 
         # HEADER
@@ -342,7 +339,7 @@ class View:
                         fg='white')
         version.grid(row=0,
                      column=1,
-                     sticky='ew')  # Center the label in the frame
+                     sticky='ew')
 
         # END VERSION
 
@@ -708,4 +705,3 @@ class View:
         self.load_total_accumulated()
         self.load_data_into_treeview()
         self.root.mainloop()
-        # END VIEW

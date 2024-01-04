@@ -15,7 +15,7 @@ Version numbers follow this convention:
   - Changed: existing features which have undergone some improvements.
 
 
-## [1.1.0] - v1.1.0
+## [1.1.0] - [OOP] v1.1.0
 ### Added
 - Implement strict MVC pattern. #15
 

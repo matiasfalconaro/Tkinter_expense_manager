@@ -132,7 +132,7 @@ class Model:
             print("Invalid month number.")
             return []
 
-        formatted_month = f"{current_month_num:02d}"  # Format two-digit month
+        formatted_month = f"{current_month_num:02d}"
 
         query = f"""SELECT category, SUM(subtotal)
                     FROM expenses

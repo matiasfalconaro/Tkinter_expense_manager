@@ -4,7 +4,7 @@ import re
 
 from tkinter.messagebox import showinfo
 
-from utils.utils import get_current_month
+from utils.methods import get_current_month
 
 
 class Controller:
@@ -12,7 +12,7 @@ class Controller:
 
     def __init__(self, model):
         self.model = model
-        self.view = None  # Initially None
+        self.view = None
 
     def set_view(self, view):
         self.view = view
@@ -57,7 +57,6 @@ class Controller:
             'due_date': due_date_value
         }
 
-        # Validate that all fields have values
         for value in values.values():
             if not value:
                 showinfo("Info", "All fields for add must be filled.")
@@ -66,16 +65,13 @@ class Controller:
                 self.cancel()
                 return
 
-        # Validate positive numbers for quantity and amount
         if values['quantity'] <= 0 or values['amount'] <= 0:
             self.view.update_status_bar(
                 "Quantity and amount must be positive numbers.")
             return
 
-        # Add to database
         last_id = self.model.add_to_db(values)
 
-        # Calculate subtotal and update UI
         subtotal_accumulated = round(values['quantity'] * values['amount'], 2)
         self.view.tree.insert('',
                               'end',
@@ -183,7 +179,6 @@ class Controller:
             self.view.update_status_bar(f"Search results for: {search_term}")
 
         self.view.load_total_accumulated()
-    # END CRUD
 
     def validate_fields(self) -> bool:
         """Validates a set of fields,
@@ -229,8 +224,8 @@ class Controller:
         self.view.cancel_button.config(state='disabled')
 
         for widget in self.view.graph_frame.winfo_children():
-            widget.destroy()  # Delete previous graphs
-            self.view.create_graph(self.view.graph_frame)  # Updated graph
+            widget.destroy()
+            self.view.create_graph(self.view.graph_frame)
 
     def cancel(self) -> None:
         """Disables the confirm button
