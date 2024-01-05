@@ -106,6 +106,71 @@ class View:
         state = 'disabled' if self.var_check_due_date.get() else 'normal'
         self.e_due_date.config(state=state)
 
+    def update_ui_after_add(self, last_id: int, values: dict) -> None:
+        """Updates the UI components
+        to reflect the addition of a new record."""
+        subtotal_accumulated = round(values['quantity'] * values['amount'], 2)
+        self.tree.insert('',
+                         'end',
+                         text=str(last_id),
+                         values=(values['product'],
+                                 values['quantity'],
+                                 values['amount'],
+                                 values['responsible'],
+                                 f"{subtotal_accumulated:.2f}",
+                                 values['category'],
+                                 values['supplier'],
+                                 values['payment_method'],
+                                 values['date'],
+                                 values['due_date']))
+
+        self.load_total_accumulated()
+        self.update_status_bar("Record added with ID: " + str(last_id))
+        self.clear_form()
+
+    def update_ui_after_delete(self, purchase_id: str, db_id: int) -> None:
+        """Updates the UI after a record deletion,
+        removing it from the treeview and updating the status bar."""
+        self.tree.delete(purchase_id)
+        self.load_total_accumulated()
+        self.update_status_bar("Record deleted with ID: " + str(db_id))
+
+    def update_ui_after_modify(
+        self, purchase_id: int, new_value: dict, db_id: int
+    ) -> None:
+        """Updates the UI after a successful modification."""
+        if self.tree.exists(purchase_id):
+            subtotal_accumulated = round(
+                new_value['quantity'] * new_value['amount'], 2
+            )
+
+            self.tree.item(purchase_id, values=(
+                new_value['product_service'],
+                new_value['quantity'],
+                new_value['amount'],
+                new_value['responsible'],
+                f"{subtotal_accumulated:.2f}",
+                new_value['category'],
+                new_value['supplier'],
+                new_value['payment_method'],
+                new_value['date'],
+                new_value['due_date']
+            ))
+
+        self.update_status_bar("Record modified with ID: " + str(db_id))
+        self.load_total_accumulated()
+
+    def update_treeview(self, filtered_records):
+        """Updates the treeview with the filtered records."""
+        for i in self.tree.get_children():
+            self.tree.delete(i)
+
+        for row in filtered_records:
+            self.tree.insert('',
+                             'end',
+                             text=str(row[0]),
+                             values=row[1:])
+
     def load_data_into_treeview(self) -> None:
         """Loads data from the database
         and populates it into a treeview widget."""

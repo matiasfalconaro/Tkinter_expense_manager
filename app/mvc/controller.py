@@ -42,7 +42,7 @@ class Controller:
             if last_id == -1:  # Handle failure
                 raise Exception("Failed to add record to the database.")
 
-            self.update_ui_after_add(last_id, values)
+            self.view.update_ui_after_add(last_id, values)
             self.confirm()
         except Exception as e:
             self.view.update_status_bar(f"Error: {e}")
@@ -95,28 +95,6 @@ class Controller:
 
         return values
 
-    def update_ui_after_add(self, last_id: int, values: dict) -> None:
-        """Updates the UI components
-        to reflect the addition of a new record."""
-        subtotal_accumulated = round(values['quantity'] * values['amount'], 2)
-        self.view.tree.insert('',
-                              'end',
-                              text=str(last_id),
-                              values=(values['product'],
-                                      values['quantity'],
-                                      values['amount'],
-                                      values['responsible'],
-                                      f"{subtotal_accumulated:.2f}",
-                                      values['category'],
-                                      values['supplier'],
-                                      values['payment_method'],
-                                      values['date'],
-                                      values['due_date']))
-
-        self.view.load_total_accumulated()
-        self.view.update_status_bar("Record added with ID: " + str(last_id))
-        self.view.clear_form()
-
     def delete(self) -> None:
         """Deletes the selected record from the database and updates the UI."""
         try:
@@ -127,7 +105,7 @@ class Controller:
                 return
 
             self.model.delete_from_db(db_id)
-            self.update_ui_after_delete(purchase_id, db_id)
+            self.view.update_ui_after_delete(purchase_id, db_id)
             self.confirm()
         except Exception as e:
             self.view.update_status_bar(f"Error deleting record: {e}")
@@ -147,13 +125,6 @@ class Controller:
             showinfo("Error", "The ID is not a valid number.")
             self.view.update_status_bar("The ID is not a valid number.")
             return None
-
-    def update_ui_after_delete(self, purchase_id: str, db_id: int) -> None:
-        """Updates the UI after a record deletion,
-        removing it from the treeview and updating the status bar."""
-        self.view.tree.delete(purchase_id)
-        self.view.load_total_accumulated()
-        self.view.update_status_bar("Record deleted with ID: " + str(db_id))
 
     def modify(self) -> None:
         """Prepares the form for modifying the selected record."""
@@ -218,7 +189,7 @@ class Controller:
             search_term = self.process_search_term()
             records = self.model.query_db()
             filtered_records = self.filter_records(records, search_term)
-            self.update_treeview(filtered_records)
+            self.view.update_treeview(filtered_records)
 
             if not search_term:
                 status_message = "All records are shown."
@@ -241,14 +212,6 @@ class Controller:
         return [
             row for row in records if regex.search(' '.join(map(str, row)))
         ]
-
-    def update_treeview(self, filtered_records):
-        """Updates the treeview with the filtered records."""
-        for i in self.view.tree.get_children():
-            self.view.tree.delete(i)
-
-        for row in filtered_records:
-            self.view.tree.insert('', 'end', text=str(row[0]), values=row[1:])
 
     def validate_fields(self) -> bool:
         """Validates a set of fields,
@@ -317,7 +280,7 @@ class Controller:
             return
 
         if self.update_database(db_id, new_value):
-            self.update_ui_after_modify(purchase_id, new_value, db_id)
+            self.view.update_ui_after_modify(purchase_id, new_value, db_id)
             self.view.clear_form()
             self.confirm()
 
@@ -349,31 +312,6 @@ class Controller:
         except Exception as e:
             self.view.update_status_bar(f"Error modifying record: {e}")
             return False
-
-    def update_ui_after_modify(
-        self, purchase_id: int, new_value: dict, db_id: int
-    ) -> None:
-        """Updates the UI after a successful modification."""
-        if self.view.tree.exists(purchase_id):
-            subtotal_accumulated = round(
-                new_value['quantity'] * new_value['amount'], 2
-            )
-
-            self.view.tree.item(purchase_id, values=(
-                new_value['product_service'],
-                new_value['quantity'],
-                new_value['amount'],
-                new_value['responsible'],
-                f"{subtotal_accumulated:.2f}",
-                new_value['category'],
-                new_value['supplier'],
-                new_value['payment_method'],
-                new_value['date'],
-                new_value['due_date']
-            ))
-
-        self.view.update_status_bar("Record modified with ID: " + str(db_id))
-        self.view.load_total_accumulated()
 
     def get_current_month_word(self, locale_setting=None):
         """Returns the current month's name in the specified locale.
