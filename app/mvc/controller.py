@@ -5,6 +5,7 @@ import re
 
 from tkinter.messagebox import showinfo
 
+from typing import Optional
 from utils.methods import get_current_month
 
 
@@ -46,6 +47,7 @@ class Controller:
             self.view.update_status_bar(f"Error: {e}")
 
     def validate_inputs(self) -> bool:
+        """Validates user inputs from the form, ensuring all fields are correctly filled."""
         if (not self.view.var_product.get() or
                 not self.view.var_quantity.get() or
                 not self.view.var_amount.get() or
@@ -63,6 +65,7 @@ class Controller:
         return True
 
     def prepare_data(self) -> dict:
+        """Prepares and returns a dictionary of data extracted from the form inputs."""
         due_date_value = (
             'N/A' if self.view.var_check_due_date.get()
             else self.view.e_due_date.get_date().strftime("%Y-%m-%d")
@@ -86,6 +89,7 @@ class Controller:
         return values
 
     def update_ui_after_add(self, last_id: int, values: dict) -> None:
+        """Updates the UI components to reflect the addition of a new record."""
         subtotal_accumulated = round(values['quantity'] * values['amount'], 2)
         self.view.tree.insert('',
                             'end',
@@ -109,33 +113,39 @@ class Controller:
         """Deletes the selected record from the database and updates the UI."""
         try:
             purchase_id = self.view.tree.focus()
-            if not purchase_id:
-                showinfo("Info", "You must select a record to delete.")
-                self.view.update_status_bar(
-                    "You must select a record to delete."
-                )
-                self.cancel()
-                return
-
-            db_id_str = self.view.tree.item(purchase_id, 'text')
-
-            if re.match(r'^\d+$', db_id_str):  # Integers >= 0
-                db_id = int(db_id_str)
-            else:
-                showinfo("Error",  "The ID is not a valid number.")
-                self.view.update_status_bar("The ID is not a valid number.")
+            db_id = self.validate_selected_record_for_deletion(purchase_id)
+            if db_id is None:
                 self.cancel()
                 return
 
             self.model.delete_from_db(db_id)
-            self.view.tree.delete(purchase_id)
-            self.view.load_total_accumulated()
-            self.view.update_status_bar(
-                "Record deleted with ID: " + str(db_id)
-            )
+            self.update_ui_after_deletion(purchase_id, db_id)
             self.confirm()
         except Exception as e:
             self.view.update_status_bar(f"Error deleting record: {e}")
+    
+    def validate_selected_record_for_deletion(self, purchase_id: str) -> Optional[int]:
+        """Validates the selected record and
+        returns its database ID, or None if invalid."""
+        if not purchase_id:
+            showinfo("Info", "You must select a record to delete.")
+            self.view.update_status_bar("You must select a record to delete.")
+            return None
+
+        db_id_str = self.view.tree.item(purchase_id, 'text')
+        if re.match(r'^\d+$', db_id_str):
+            return int(db_id_str)
+        else:
+            showinfo("Error", "The ID is not a valid number.")
+            self.view.update_status_bar("The ID is not a valid number.")
+            return None
+
+    def update_ui_after_deletion(self, purchase_id: str, db_id: int) -> None:
+        """Updates the UI after a record deletion,
+        removing it from the treeview and updating the status bar."""
+        self.view.tree.delete(purchase_id)
+        self.view.load_total_accumulated()
+        self.view.update_status_bar("Record deleted with ID: " + str(db_id))
 
     def modify(self) -> None:
         """Prepares the form for modifying the selected record
