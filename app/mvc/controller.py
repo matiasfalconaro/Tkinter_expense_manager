@@ -28,29 +28,54 @@ class Controller:
 
     def add(self) -> None:
         """Adds a new record to the database and updates the UI accordingly."""
-        self.view.var_date.set(
-            self.view.cal_date.get_date().strftime("%Y-%m-%d"))
-        due_date_value = (
-            'N/A' if self.view.var_check_due_date.get()
-            else self.view.e_due_date.get_date().strftime("%Y-%m-%d")
-        )
+        if not self.validate_inputs():
+            return
 
-        self.view.var_due_date.set(due_date_value)
+        values = self.prepare_data()
+        if not values:
+            return
 
+        try:
+            last_id = self.model.add_to_db(values)
+            if last_id == -1:  # Handle failure
+                raise Exception("Failed to add record to the database.")
+
+            self.update_ui_after_add(last_id, values)
+            self.confirm()
+        except Exception as e:
+            self.view.update_status_bar(f"Error: {e}")
+
+    def validate_inputs(self) -> bool:
         if (not self.view.var_product.get() or
                 not self.view.var_quantity.get() or
                 not self.view.var_amount.get() or
                 not self.view.cb_responsible.get()):
             self.view.update_status_bar("All input fields must be completed")
             showinfo("Info", "All input fields must be completed")
-            self.cancel()
-            return
+            return False
+
+        quantity = int(self.view.var_quantity.get())
+        amount = float(self.view.var_amount.get())
+        if quantity <= 0 or amount <= 0:
+            self.view.update_status_bar("Quantity and amount must be positive numbers.")
+            return False
+
+        return True
+
+    def prepare_data(self) -> dict:
+        due_date_value = (
+            'N/A' if self.view.var_check_due_date.get()
+            else self.view.e_due_date.get_date().strftime("%Y-%m-%d")
+        )
+
+        self.view.var_due_date.set(due_date_value)
+        self.view.var_date.set(self.view.cal_date.get_date().strftime("%Y-%m-%d"))
 
         values = {
             'amount': float(self.view.var_amount.get()),
             'product': self.view.var_product.get(),
             'category': self.view.cb_category.get(),
-            'date': self.view.cal_date.get_date().strftime("%Y-%m-%d"),
+            'date': self.view.var_date.get(),
             'supplier': self.view.var_supplier.get(),
             'payment_method': self.view.cb_payment_method.get(),
             'responsible': self.view.cb_responsible.get(),
@@ -58,51 +83,27 @@ class Controller:
             'due_date': due_date_value
         }
 
-        try:
-            for value in values.values():
-                if not value:
-                    showinfo("Info", "All fields for add must be filled.")
-                    self.view.update_status_bar(
-                        "All fields for add must be filled."
-                    )
-                    self.cancel()
-                    return
+        return values
 
-            if values['quantity'] <= 0 or values['amount'] <= 0:
-                self.view.update_status_bar(
-                    "Quantity and amount must be positive numbers."
-                )
-                return
+    def update_ui_after_add(self, last_id: int, values: dict) -> None:
+        subtotal_accumulated = round(values['quantity'] * values['amount'], 2)
+        self.view.tree.insert('',
+                            'end',
+                            text=str(last_id),
+                            values=(values['product'],
+                                    values['quantity'],
+                                    values['amount'],
+                                    values['responsible'],
+                                    f"{subtotal_accumulated:.2f}",
+                                    values['category'],
+                                    values['supplier'],
+                                    values['payment_method'],
+                                    values['date'],
+                                    values['due_date']))
 
-            last_id = self.model.add_to_db(values)
-            if last_id == -1:  # -1 indicates a failure in add_to_db
-                raise Exception("Failed to add record to the database.")
-
-            subtotal_accumulated = round(
-                values['quantity'] * values['amount'], 2
-            )
-            self.view.tree.insert('',
-                                  'end',
-                                  text=str(last_id),
-                                  values=(values['product'],
-                                          values['quantity'],
-                                          values['amount'],
-                                          values['responsible'],
-                                          f"{subtotal_accumulated:.2f}",
-                                          values['category'],
-                                          values['supplier'],
-                                          values['payment_method'],
-                                          values['date'],
-                                          values['due_date']))
-
-            self.view.load_total_accumulated()
-            self.view.update_status_bar(
-                "Record added with ID: " + str(last_id)
-            )
-            self.view.clear_form()
-            self.confirm()
-        except Exception as e:
-            self.view.update_status_bar(f"Error: {e}")
+        self.view.load_total_accumulated()
+        self.view.update_status_bar("Record added with ID: " + str(last_id))
+        self.view.clear_form()
 
     def delete(self) -> None:
         """Deletes the selected record from the database and updates the UI."""
