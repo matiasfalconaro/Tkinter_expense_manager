@@ -172,7 +172,8 @@ class Controller:
                 state='normal',
                 command=lambda: self.apply_modification(
                     purchase_id,
-                    db_id))
+                    db_id)
+            )
             self.view.cancel_button.config(state='normal')
         except ValueError as e:
             showinfo("Error", f"Data error: {e}")
@@ -288,7 +289,7 @@ class Controller:
                 return
 
             new_value = {
-                'product': self.view.var_product.get(),
+                'product_service': self.view.var_product.get(),
                 'quantity': int(self.view.var_quantity.get()),
                 'amount': float(self.view.var_amount.get()),
                 'responsible': self.view.cb_responsible.get(),
@@ -303,7 +304,7 @@ class Controller:
 
             if self.view.tree.exists(purchase_id):
                 self.view.tree.item(purchase_id, values=(
-                    new_value['product'],
+                    new_value['product_service'],
                     new_value['quantity'],
                     new_value['amount'],
                     new_value['responsible'],
@@ -352,7 +353,7 @@ class Controller:
             current_month = get_current_month()
             records = self.model.query_db(month=current_month)
 
-            total_accumulated = sum(row[0] for row in records)
+            total_accumulated = sum(row[5] for row in records)
 
             return total_accumulated
         except Exception as e:

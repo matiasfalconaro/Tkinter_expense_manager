@@ -12,54 +12,83 @@ class Model:
 
     def connect_to_database(self) -> sqlite3.Connection:
         """Establishes and returns a connection to the SQLite database."""
-        return sqlite3.connect('database/database.db')
+        try:
+            conn = sqlite3.connect('database/database.db')
+            self.logger.info("Database connection established.")
+            return conn
+        except sqlite3.Error as e:
+            self.logger.error(f"Database connection error: {e}")
+            raise
 
     def disconnect_from_database(self) -> None:
         """Closes the database connection."""
-        self.conn.close()
+        try:
+            self.conn.close()
+            self.logger.info("Database connection closed.")
+        except sqlite3.Error as e:
+            self.logger.error(f"Database disconnection error: {e}")
 
     def create_table(self) -> None:
         """Creates the 'expenses' table in the database
         if it does not already exist."""
-        cursor = self.conn.cursor()
-        query = """CREATE TABLE IF NOT EXISTS expenses (
-                   id INTEGER PRIMARY KEY AUTOINCREMENT,
-                   product_service TEXT,
-                   quantity INTEGER,
-                   amount FLOAT,
-                   responsible TEXT,
-                   subtotal FLOAT,
-                   category TEXT,
-                   supplier TEXT,
-                   payment_method TEXT,
-                   date DATE,
-                   due_date DATE
-                   );"""
-        cursor.execute(query)
-        self.conn.commit()
+        try:
+            cursor = self.conn.cursor()
+            query = """CREATE TABLE IF NOT EXISTS expenses (
+                       id INTEGER PRIMARY KEY AUTOINCREMENT,
+                       product_service TEXT,
+                       quantity INTEGER,
+                       amount FLOAT,
+                       responsible TEXT,
+                       subtotal FLOAT,
+                       category TEXT,
+                       supplier TEXT,
+                       payment_method TEXT,
+                       date DATE,
+                       due_date DATE
+                       );"""
+            cursor.execute(query)
+            self.conn.commit()
+            self.logger.info("Table 'expenses' created or already exists.")
+        except sqlite3.DatabaseError as e:
+            self.logger.error(f"Database error: {e}")
 
     def add_to_db(self, values: dict) -> int:
         """Inserts a new record into the 'expenses' table
         and returns the ID of the inserted record."""
         try:
+            required_fields = ['product',
+                               'quantity',
+                               'amount',
+                               'responsible',
+                               'category',
+                               'supplier',
+                               'payment_method',
+                               'date',
+                               'due_date']
+            self.logger.debug(f"Received values for add_to_db: {values}")
+            for field in required_fields:
+                if field not in values or values[field] is None:
+                    raise ValueError(f"Missing required field: {field}")
+
+            if not isinstance(values['quantity'],
+                              (int, float)) or not isinstance(values['amount'],
+                                                              (float, int)):
+                raise ValueError("Quantity and amount must be numeric")
+
             cursor = self.conn.cursor()
             query = """INSERT INTO expenses (product_service,
-                       quantity,
-                       amount,
-                       responsible,
-                       subtotal,
-                       category, supplier,
-                       payment_method,
-                       date,
-                       due_date)
+                       quantity, amount, responsible, subtotal,
+                       category, supplier, payment_method,
+                       date, due_date)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
 
-            subtotal = values['quantity'] * values['amount']
+            subtotal = round(values['quantity'] * values['amount'], 2)
             data = (values['product'],
                     values['quantity'],
                     values['amount'],
                     values['responsible'],
-                    subtotal, values['category'],
+                    subtotal,
+                    values['category'],
                     values['supplier'],
                     values['payment_method'],
                     values['date'],
@@ -69,103 +98,113 @@ class Model:
             self.conn.commit()
             last_id = cursor.lastrowid
             return last_id
+        except ValueError as e:
+            self.logger.error(f"Input validation error: {e}")
+            return -1
         except sqlite3.DatabaseError as e:
             self.logger.error(f"Database error: {e}")
             self.conn.rollback()
             return -1
 
-    def delete_from_db(self, record_id: int) -> None:
+    def delete_from_db(self, record_id: int) -> bool:
         """Deletes a record from the 'expenses' table
         based on the given record ID."""
         try:
+            if not isinstance(record_id, int) or record_id <= 0:
+                raise ValueError("Invalid record ID.")
+
             cursor = self.conn.cursor()
-            query = "DELETE FROM expenses WHERE id = ?;"
-            cursor.execute(query, (record_id,))
+
+            select_query = "SELECT * FROM expenses WHERE id = ?;"
+            cursor.execute(select_query, (record_id,))
+            record = cursor.fetchone()
+
+            if record is None:
+                self.logger.warning(f"No record found with ID: {record_id}")
+                return False
+
+            self.logger.debug(f"Deleting record with ID {record_id}: {record}")
+
+            delete_query = "DELETE FROM expenses WHERE id = ?;"
+            cursor.execute(delete_query, (record_id,))
             self.conn.commit()
+
+            return True
+
+        except ValueError as e:
+            self.logger.error(f"Input validation error: {e}")
+            return False
         except sqlite3.DatabaseError as e:
             self.logger.error(f"Database error: {e}")
             self.conn.rollback()
-            # Optionally, re-raise the exception
+            return False
 
     def update_db(self, record_id: int, values: dict) -> None:
         """Updates a specific record in the 'expenses' table
         with new values based on the given record ID."""
         try:
-            cursor = self.conn.cursor()
-            query = """UPDATE expenses SET
-                    product_service = ?,
-                    quantity = ?,
-                    amount = ?,
-                    responsible = ?,
-                    subtotal = ?,
-                    category = ?,
-                    supplier = ?,
-                    payment_method = ?,
-                    date = ?,
-                    due_date = ?
-                    WHERE id = ?;"""
+            if not isinstance(record_id, int) or record_id <= 0:
+                raise ValueError("Invalid record ID.")
 
-            subtotal = int(values['quantity'] * values['amount'] * 100) / 100.0
-            data = (values['product'],
-                    values['quantity'],
-                    values['amount'],
-                    values['responsible'],
-                    subtotal, values['category'],
-                    values['supplier'],
-                    values['payment_method'],
-                    values['date'],
-                    values['due_date'],
-                    record_id)
+            cursor = self.conn.cursor()
+
+            values['subtotal'] = round(
+                values['quantity'] * values['amount'], 2)
+
+            set_clause = ', '.join([f"{key} = ?" for key in values])
+            query = f"UPDATE expenses SET {set_clause} WHERE id = ?;"
+
+            data = tuple(values.values()) + (record_id,)
 
             cursor.execute(query, data)
             self.conn.commit()
+        except ValueError as e:
+            self.logger.error(f"Input validation error: {e}")
         except sqlite3.DatabaseError as e:
             self.logger.error(f"Database error: {e}")
             self.conn.rollback()
-            # Optionally, re-raise the exception
 
     def query_db(self, month: Optional[int] = None) -> List[Tuple]:
         """Queries and returns records from the 'expenses' table,
         optionally filtering by the specified month."""
         try:
             cursor = self.conn.cursor()
+            base_query = "SELECT * FROM expenses"
+            params = []
+
             if month is not None:
-                query = """SELECT subtotal
-                        FROM expenses WHERE strftime('%m', date) = ?;"""
-                cursor.execute(query, (f"{month:02d}",))
-            else:
-                query = """SELECT * FROM expenses;"""
-                cursor.execute(query)
+                if 1 <= month <= 12:
+                    base_query += " WHERE strftime('%m', date) = ?"
+                    params.append(f"{month:02d}")
+                else:
+                    self.logger.error("Invalid month number.")
+                    return []
+
+            cursor.execute(base_query, params)
             rows = cursor.fetchall()
             return rows
         except sqlite3.DatabaseError as e:
             self.logger.error(f"Database error: {e}")
-            # Handle the error as appropriate
             return []
 
     def get_graph_data(self, get_current_month: int) -> List[Tuple]:
         """Retrieves and returns data for graph generation
         based on categories and their subtotals for the current month."""
         try:
-            cursor = self.conn.cursor()
-
-            # Ensure function is available
-            current_month_num = get_current_month
-            if not (isinstance(current_month_num, int)
-                    and 1 <= current_month_num <= 12):
-                self.logger.error("Invalid month number.")
+            if (not isinstance(get_current_month, int) or
+                    not 1 <= get_current_month <= 12):
+                self.logger.error(f"Invalid month number: {get_current_month}")
                 return []
 
-            formatted_month = f"{current_month_num:02d}"
+            cursor = self.conn.cursor()
+            query = """SELECT category, SUM(subtotal)
+                    FROM expenses
+                    WHERE strftime('%m', date) = ?
+                    GROUP BY category"""
 
-            query = f"""SELECT category, SUM(subtotal)
-                        FROM expenses
-                        WHERE strftime('%m', date) = '{formatted_month}'
-                        GROUP BY category"""
-
-            cursor.execute(query)
+            cursor.execute(query, (f"{get_current_month:02d}",))
             data = cursor.fetchall()
             return data
         except sqlite3.DatabaseError as e:
-            self.logger.error(f"Database error: {e}")
+            self.logger.error(f"Database error in get_graph_data: {e}")
             return []

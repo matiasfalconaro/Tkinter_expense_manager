@@ -6,7 +6,7 @@ Version numbers follow this convention:
 - `Y` is the minor version number, related to new functionalities and major refactors.
 - `Z` is the patch version number, for bug fixes corresponding to the base version.
 
-### Comments
+## Comments
 - (#XX) refers to issue number
 - Actions:
   - Hotfix: fix a specific issue. They tend to have small impact over the complete project
@@ -16,7 +16,7 @@ Version numbers follow this convention:
 
 ## [v1.1.1] - [RAS] 2024-01-05
 ### Added
-- Set up logging. (#36)
+- Set up `logging` for database operations and runtime exceptions. (#36)
 
 ### Changed
 - Optimize code performance and standards. (#16)
@@ -32,7 +32,7 @@ Version numbers follow this convention:
 - Create app UI mockup. (#1)
 - Create backend logic for controller and model. (#3)
 - Implement data persistence. (#7)
-- Implement Flake8. (#9)
+- Implement `Flake8`. (#9)
 - Create documenation. (#11)
 - Upload mock data to database. (#20)
 - Create PDF documentation. (#22)
@@ -43,4 +43,4 @@ Version numbers follow this convention:
 
 ### Fixed
 - Fix layout. (#14)
-- Fix get_graph_data function to ensure the month is correctly formatted. (#18)
+- Fix `get_graph_data` function to ensure the month is correctly formatted. (#18)
