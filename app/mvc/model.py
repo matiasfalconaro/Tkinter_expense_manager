@@ -158,29 +158,53 @@ class Model:
             return False
 
     def update_db(self, record_id: int, values: dict) -> None:
-        """Updates a specific record in the 'expenses' table
-        with new values based on the given record ID."""
+        """Updates an existing expense record
+        in the database with the provided values."""
         try:
-            if not isinstance(record_id, int) or record_id <= 0:
-                raise ValueError("Invalid record ID.")
+            if not self.validate_update_data(record_id, values):
+                return
 
             cursor = self.conn.cursor()
 
             values['subtotal'] = round(
-                values['quantity'] * values['amount'], 2)
-
+                values['quantity'] * values['amount'], 2
+            )
             set_clause = ', '.join([f"{key} = ?" for key in values])
             query = f"UPDATE expenses SET {set_clause} WHERE id = ?;"
-
             data = tuple(values.values()) + (record_id,)
 
             cursor.execute(query, data)
             self.conn.commit()
+
         except ValueError as e:
             self.logger.error(f"Input validation error: {e}")
+            self.conn.rollback()
         except sqlite3.DatabaseError as e:
             self.logger.error(f"Database error: {e}")
             self.conn.rollback()
+
+    def validate_update_data(self, record_id: int, values: dict) -> bool:
+        """Validates the record ID and
+        data fields for updating an expense record."""
+        if not isinstance(record_id, int) or record_id <= 0:
+            self.logger.error("Invalid record ID.")
+            raise ValueError("Invalid record ID.")
+
+        required_fields = ['quantity', 'amount']  # Add other fields as needed
+        for field in required_fields:
+            if field not in values:
+                self.logger.error(
+                    f"Missing required field for update: {field}"
+                )
+                raise ValueError(f"Missing required field for update: {field}")
+
+        if (not isinstance(values['quantity'], (int, float)) or
+                not isinstance(values['amount'], (float, int))):
+
+            self.logger.error("Quantity and amount must be numeric for update")
+            raise ValueError("Quantity and amount must be numeric for update")
+
+        return True
 
     def query_db(self, month: Optional[int] = None) -> List[Tuple]:
         """Queries and returns records from the 'expenses' table,
