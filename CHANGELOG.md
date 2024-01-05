@@ -2,9 +2,16 @@
 Format is loosely related to https://keepachangelog.com/en/1.1.0/.
 Version numbers follow this convention:
 - Version: `X.Y.Z`
-- `X` is the major version number, related to new functional designs and major UI changes.
-- `Y` is the minor version number, related to new functionalities and major refactors.
-- `Z` is the patch version number, for bug fixes corresponding to the base version.
+  - `X` is the major version number, related to new functional designs and major UI changes.
+  - `Y` is the minor version number, related to new functionalities and major refactors.
+  - `Z` is the patch version number, for bug fixes corresponding to the base version.
+- Tags:
+  - [PRD]: Production executable
+  - [FUS]: Functionality, Usability, Supportability.
+  - [MVP]: Minimum Viable Product
+  - [QAI]: Quallity Assurance Issues
+  - [OOP]: Object-oriented Programming
+  - [RAS]: Reliability, Availability, and Serviceability (Stability)
 
 ## Comments
 - (#XX) refers to issue number
@@ -20,6 +27,7 @@ Version numbers follow this convention:
 
 ### Changed
 - Optimize code performance and standards. (#16)
+- Improve security for database operations. (#30)
 
 
 ## [v1.1.0] - [OOP] 2024-01-03
