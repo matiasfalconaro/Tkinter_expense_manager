@@ -41,10 +41,10 @@ class View:
 
     def __init__(self, controller):
         self.logger = logging.getLogger(__name__)
-        
+
         self.model = Model()
         self.controller = controller
-        
+
         self.root = None
         self.tree = None
         self.status = None

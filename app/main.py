@@ -18,7 +18,9 @@ def main():
         controller.set_view(view)
         view.create_view()
     except Exception as e:
-        logger.error(f"An error occurred during application initialization: {e}")
+        logger.error(
+            f"An error occurred during application initialization: {e}"
+        )
 
 
 if __name__ == "__main__":

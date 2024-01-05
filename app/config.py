@@ -1,12 +1,19 @@
 import logging
+import os
+
 from logging.config import dictConfig
 
-def setup_logging():
+
+def setup_logging() -> None:
+    """Initializes and configures the logging system for the application."""
+    log_directory = "logs"
+    os.makedirs(log_directory, exist_ok=True)
+
     logging_config = {
         'version': 1,
         'formatters': {
             'standard': {
-                'format': '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+                'format': '[%(asctime)s][%(name)s][%(levelname)s][%(message)s]'
             },
         },
         'handlers': {
@@ -15,11 +22,16 @@ def setup_logging():
                 'formatter': 'standard',
                 'level': logging.DEBUG
             },
-            # Add file handler to log to a file 
+            'file': {
+                'class': 'logging.FileHandler',
+                'filename': os.path.join(log_directory, 'app.log'),
+                'formatter': 'standard',
+                'level': logging.DEBUG
+            },
         },
         'loggers': {
             '': {  # root logger
-                'handlers': ['console'],
+                'handlers': ['console', 'file'],
                 'level': logging.DEBUG,
                 'propagate': False
             }
