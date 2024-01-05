@@ -47,7 +47,8 @@ class Controller:
             self.view.update_status_bar(f"Error: {e}")
 
     def validate_inputs(self) -> bool:
-        """Validates user inputs from the form, ensuring all fields are correctly filled."""
+        """Validates user inputs from the form,
+        ensuring all fields are correctly filled."""
         if (not self.view.var_product.get() or
                 not self.view.var_quantity.get() or
                 not self.view.var_amount.get() or
@@ -59,20 +60,25 @@ class Controller:
         quantity = int(self.view.var_quantity.get())
         amount = float(self.view.var_amount.get())
         if quantity <= 0 or amount <= 0:
-            self.view.update_status_bar("Quantity and amount must be positive numbers.")
+            self.view.update_status_bar(
+                "Quantity and amount must be positive numbers."
+            )
             return False
 
         return True
 
     def prepare_data(self) -> dict:
-        """Prepares and returns a dictionary of data extracted from the form inputs."""
+        """Prepares and returns a dictionary of data
+        extracted from the form inputs."""
         due_date_value = (
             'N/A' if self.view.var_check_due_date.get()
             else self.view.e_due_date.get_date().strftime("%Y-%m-%d")
         )
 
         self.view.var_due_date.set(due_date_value)
-        self.view.var_date.set(self.view.cal_date.get_date().strftime("%Y-%m-%d"))
+        self.view.var_date.set(
+            self.view.cal_date.get_date().strftime("%Y-%m-%d")
+        )
 
         values = {
             'amount': float(self.view.var_amount.get()),
@@ -89,21 +95,22 @@ class Controller:
         return values
 
     def update_ui_after_add(self, last_id: int, values: dict) -> None:
-        """Updates the UI components to reflect the addition of a new record."""
+        """Updates the UI components
+        to reflect the addition of a new record."""
         subtotal_accumulated = round(values['quantity'] * values['amount'], 2)
         self.view.tree.insert('',
-                            'end',
-                            text=str(last_id),
-                            values=(values['product'],
-                                    values['quantity'],
-                                    values['amount'],
-                                    values['responsible'],
-                                    f"{subtotal_accumulated:.2f}",
-                                    values['category'],
-                                    values['supplier'],
-                                    values['payment_method'],
-                                    values['date'],
-                                    values['due_date']))
+                              'end',
+                              text=str(last_id),
+                              values=(values['product'],
+                                      values['quantity'],
+                                      values['amount'],
+                                      values['responsible'],
+                                      f"{subtotal_accumulated:.2f}",
+                                      values['category'],
+                                      values['supplier'],
+                                      values['payment_method'],
+                                      values['date'],
+                                      values['due_date']))
 
         self.view.load_total_accumulated()
         self.view.update_status_bar("Record added with ID: " + str(last_id))
@@ -113,7 +120,7 @@ class Controller:
         """Deletes the selected record from the database and updates the UI."""
         try:
             purchase_id = self.view.tree.focus()
-            db_id = self.validate_selected_record_for_deletion(purchase_id)
+            db_id = self.validate_selection_deletion(purchase_id)
             if db_id is None:
                 self.cancel()
                 return
@@ -123,8 +130,8 @@ class Controller:
             self.confirm()
         except Exception as e:
             self.view.update_status_bar(f"Error deleting record: {e}")
-    
-    def validate_selected_record_for_deletion(self, purchase_id: str) -> Optional[int]:
+
+    def validate_selection_deletion(self, purchase_id: str) -> Optional[int]:
         """Validates the selected record and
         returns its database ID, or None if invalid."""
         if not purchase_id:
@@ -148,44 +155,14 @@ class Controller:
         self.view.update_status_bar("Record deleted with ID: " + str(db_id))
 
     def modify(self) -> None:
-        """Prepares the form for modifying the selected record
-        by loading its values into the input fields."""
+        """Prepares the form for modifying the selected record."""
         try:
-            purchase_id = self.view.tree.focus()
-            if not purchase_id:
-                showinfo("Info", "You must select a record to modify.")
-                self.view.update_status_bar(
-                    "You must select a record to modify."
-                )
+            purchase_id = self.validate_selected_record_for_modification()
+            if purchase_id is None:
                 self.cancel()
                 return
 
-            db_id_str = self.view.tree.item(purchase_id, 'text')
-            db_id = int(db_id_str)  # Potential ValueError
-
-            values = self.view.tree.item(purchase_id, 'values')
-            if len(values) < 10:
-                raise ValueError("Incomplete data for the selected record.")
-
-            self.view.var_product.set(values[0])
-            self.view.var_quantity.set(values[1])
-            self.view.var_amount.set(values[2])
-            self.view.var_date.set(values[8])
-            self.view.cb_responsible.set(values[3])
-            self.view.cb_category.set(values[5])
-            self.view.cb_payment_method.set(values[7])
-            self.view.var_supplier.set(values[6])
-            self.view.var_due_date.set(values[9])
-
-            self.view.update_status_bar("Modifying record ID: " + str(db_id))
-
-            self.view.confirm_button.config(
-                state='normal',
-                command=lambda: self.apply_modification(
-                    purchase_id,
-                    db_id)
-            )
-            self.view.cancel_button.config(state='normal')
+            self.load_data_into_form(purchase_id)
         except ValueError as e:
             showinfo("Error", f"Data error: {e}")
             self.view.update_status_bar(f"Data error: {e}")
@@ -194,6 +171,44 @@ class Controller:
             showinfo("Error", f"Unexpected error: {e}")
             self.view.update_status_bar(f"Unexpected error: {e}")
             self.cancel()
+
+    def validate_selected_record_for_modification(self) -> Optional[str]:
+        """Validates if a record is selected
+        for modification and returns its ID."""
+        purchase_id = self.view.tree.focus()
+        if not purchase_id:
+            showinfo("Info", "You must select a record to modify.")
+            self.view.update_status_bar("You must select a record to modify.")
+            return None
+        return purchase_id
+
+    def load_data_into_form(self, purchase_id: str) -> None:
+        """Loads data from the selected record into the form for editing."""
+        db_id_str = self.view.tree.item(purchase_id, 'text')
+        db_id = int(db_id_str)  # Potential ValueError
+        values = self.view.tree.item(purchase_id, 'values')
+
+        self.view.var_product.set(values[0])
+        self.view.var_quantity.set(values[1])
+        self.view.var_amount.set(values[2])
+        self.view.cb_responsible.set(values[3])
+        self.view.cb_category.set(values[5])
+        self.view.cb_payment_method.set(values[7])
+        self.view.var_supplier.set(values[6])
+        self.view.var_date.set(values[8])
+        self.view.var_due_date.set(values[9])
+
+        self.view.update_status_bar("Modifying record ID: " + str(db_id))
+        self.setup_modify_buttons(purchase_id, db_id)
+
+    def setup_modify_buttons(self, purchase_id: str, db_id: int) -> None:
+        """Configures the confirm and
+        cancel buttons for the modify operation."""
+        self.view.confirm_button.config(
+            state='normal',
+            command=lambda: self.apply_modification(purchase_id, db_id)
+        )
+        self.view.cancel_button.config(state='normal')
 
     def search(self) -> None:
         """Searches the database records based on the given search term
