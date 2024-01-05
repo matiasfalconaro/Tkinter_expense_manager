@@ -127,7 +127,7 @@ class Controller:
                 return
 
             self.model.delete_from_db(db_id)
-            self.update_ui_after_deletion(purchase_id, db_id)
+            self.update_ui_after_delete(purchase_id, db_id)
             self.confirm()
         except Exception as e:
             self.view.update_status_bar(f"Error deleting record: {e}")
@@ -148,7 +148,7 @@ class Controller:
             self.view.update_status_bar("The ID is not a valid number.")
             return None
 
-    def update_ui_after_deletion(self, purchase_id: str, db_id: int) -> None:
+    def update_ui_after_delete(self, purchase_id: str, db_id: int) -> None:
         """Updates the UI after a record deletion,
         removing it from the treeview and updating the status bar."""
         self.view.tree.delete(purchase_id)
@@ -310,51 +310,70 @@ class Controller:
         self.view.clear_form()
 
     def apply_modification(self, purchase_id: int, db_id: int) -> None:
-        """Applies modifications to a purchase record if all fields are valid;
-        otherwise, displays an error and resets the form."""
-        try:
-            if not self.validate_fields():
-                self.view.update_status_bar("All fields must be filled.")
-                showinfo("Info", "All fields must be filled.")
-                self.cancel()
-                return
+        """Applies modifications to a purchase record."""
+        new_value = self.validate_and_prepare_data()
+        if new_value is None:
+            self.cancel()
+            return
 
-            new_value = {
-                'product_service': self.view.var_product.get(),
-                'quantity': int(self.view.var_quantity.get()),
-                'amount': float(self.view.var_amount.get()),
-                'responsible': self.view.cb_responsible.get(),
-                'category': self.view.cb_category.get(),
-                'supplier': self.view.var_supplier.get(),
-                'payment_method': self.view.cb_payment_method.get(),
-                'date': self.view.var_date.get(),
-                'due_date': self.view.var_due_date.get()
-            }
-
-            self.model.update_db(db_id, new_value)
-
-            if self.view.tree.exists(purchase_id):
-                self.view.tree.item(purchase_id, values=(
-                    new_value['product_service'],
-                    new_value['quantity'],
-                    new_value['amount'],
-                    new_value['responsible'],
-                    new_value['amount'] * new_value['quantity'],  # Subtotal
-                    new_value['category'],
-                    new_value['supplier'],
-                    new_value['payment_method'],
-                    new_value['date'],
-                    new_value['due_date']
-                ))
-
-            self.view.update_status_bar(
-                "Record modified with ID: " + str(db_id)
-            )
-            self.view.load_total_accumulated()
+        if self.update_database(db_id, new_value):
+            self.update_ui_after_modify(purchase_id, new_value, db_id)
             self.view.clear_form()
             self.confirm()
+
+    def validate_and_prepare_data(self) -> Optional[dict]:
+        """Validates input fields and prepares data for database update."""
+        if not self.validate_fields():
+            self.view.update_status_bar("All fields must be filled.")
+            showinfo("Info", "All fields must be filled.")
+            return None
+
+        new_value = {
+            'product_service': self.view.var_product.get(),
+            'quantity': int(self.view.var_quantity.get()),
+            'amount': float(self.view.var_amount.get()),
+            'responsible': self.view.cb_responsible.get(),
+            'category': self.view.cb_category.get(),
+            'supplier': self.view.var_supplier.get(),
+            'payment_method': self.view.cb_payment_method.get(),
+            'date': self.view.var_date.get(),
+            'due_date': self.view.var_due_date.get()
+        }
+        return new_value
+
+    def update_database(self, db_id: int, new_value: dict) -> bool:
+        """Updates the database record with new values."""
+        try:
+            self.model.update_db(db_id, new_value)
+            return True
         except Exception as e:
             self.view.update_status_bar(f"Error modifying record: {e}")
+            return False
+
+    def update_ui_after_modify(
+        self, purchase_id: int, new_value: dict, db_id: int
+    ) -> None:
+        """Updates the UI after a successful modification."""
+        if self.view.tree.exists(purchase_id):
+            subtotal_accumulated = round(
+                new_value['quantity'] * new_value['amount'], 2
+            )
+
+            self.view.tree.item(purchase_id, values=(
+                new_value['product_service'],
+                new_value['quantity'],
+                new_value['amount'],
+                new_value['responsible'],
+                f"{subtotal_accumulated:.2f}",
+                new_value['category'],
+                new_value['supplier'],
+                new_value['payment_method'],
+                new_value['date'],
+                new_value['due_date']
+            ))
+
+        self.view.update_status_bar("Record modified with ID: " + str(db_id))
+        self.view.load_total_accumulated()
 
     def get_current_month_word(self, locale_setting=None):
         """Returns the current month's name in the specified locale.
