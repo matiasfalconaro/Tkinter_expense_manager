@@ -5,7 +5,8 @@ import re
 
 from tkinter.messagebox import showinfo
 
-from typing import Optional
+from typing import List, Optional
+
 from utils.methods import get_current_month
 
 
@@ -211,39 +212,43 @@ class Controller:
         self.view.cancel_button.config(state='normal')
 
     def search(self) -> None:
-        """Searches the database records based on the given search term
-        and updates the treeview with the filtered results."""
+        """Searches the database records
+        and updates the treeview with filtered results."""
         try:
-            search_term = self.view.var_search.get()
-            search_term = "" if "*" in search_term else search_term
-
+            search_term = self.process_search_term()
             records = self.model.query_db()
+            filtered_records = self.filter_records(records, search_term)
+            self.update_treeview(filtered_records)
 
-            regex = re.compile(search_term, re.IGNORECASE)
+            if not search_term:
+                status_message = "All records are shown."
+            else:
+                status_message = f"Search results for: {search_term}"
 
-            filtered_records = [
-                row for row in records
-                if regex.search(' '.join(map(str, row)))
-            ]
-
-            for i in self.view.tree.get_children():
-                self.view.tree.delete(i)
-
-            for row in filtered_records:
-                self.view.tree.insert('',
-                                      'end',
-                                      text=str(row[0]),
-                                      values=row[1:])
-
-            status_message = (
-                "All records are shown." if search_term == ""
-                else f"Search results for: {search_term}"
-            )
             self.view.update_status_bar(status_message)
-
             self.view.load_total_accumulated()
         except Exception as e:
             self.view.update_status_bar(f"Error in search operation: {e}")
+
+    def process_search_term(self) -> str:
+        """Processes and returns the formatted search term."""
+        search_term = self.view.var_search.get()
+        return "" if "*" in search_term else search_term
+
+    def filter_records(self, records, search_term: str) -> List:
+        """Filters the records based on the given search term."""
+        regex = re.compile(search_term, re.IGNORECASE)
+        return [
+            row for row in records if regex.search(' '.join(map(str, row)))
+        ]
+
+    def update_treeview(self, filtered_records):
+        """Updates the treeview with the filtered records."""
+        for i in self.view.tree.get_children():
+            self.view.tree.delete(i)
+
+        for row in filtered_records:
+            self.view.tree.insert('', 'end', text=str(row[0]), values=row[1:])
 
     def validate_fields(self) -> bool:
         """Validates a set of fields,
