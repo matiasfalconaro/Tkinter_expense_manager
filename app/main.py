@@ -1,6 +1,12 @@
+import logging
+
+from config import setup_logging
 from mvc.model import Model
 from mvc.view import View
 from mvc.controller import Controller
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -12,7 +18,9 @@ def main():
         controller.set_view(view)
         view.create_view()
     except Exception as e:
-        print(f"An error occurred during application initialization: {e}")
+        logger.error(
+            f"An error occurred during application initialization: {e}"
+        )
 
 
 if __name__ == "__main__":

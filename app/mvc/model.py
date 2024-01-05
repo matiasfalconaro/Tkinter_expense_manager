@@ -1,3 +1,4 @@
+import logging
 import sqlite3
 
 from typing import Optional, List, Tuple
@@ -6,6 +7,7 @@ from typing import Optional, List, Tuple
 class Model:
     """Handles database operations"""
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         self.conn = self.connect_to_database()
 
     def connect_to_database(self) -> sqlite3.Connection:
@@ -68,7 +70,7 @@ class Model:
             last_id = cursor.lastrowid
             return last_id
         except sqlite3.DatabaseError as e:
-            print(f"Database error: {e}")
+            self.logger.error(f"Database error: {e}")
             self.conn.rollback()
             return -1
 
@@ -81,7 +83,7 @@ class Model:
             cursor.execute(query, (record_id,))
             self.conn.commit()
         except sqlite3.DatabaseError as e:
-            print(f"Database error: {e}")
+            self.logger.error(f"Database error: {e}")
             self.conn.rollback()
             # Optionally, re-raise the exception
 
@@ -118,7 +120,7 @@ class Model:
             cursor.execute(query, data)
             self.conn.commit()
         except sqlite3.DatabaseError as e:
-            print(f"Database error: {e}")
+            self.logger.error(f"Database error: {e}")
             self.conn.rollback()
             # Optionally, re-raise the exception
 
@@ -137,7 +139,7 @@ class Model:
             rows = cursor.fetchall()
             return rows
         except sqlite3.DatabaseError as e:
-            print(f"Database error: {e}")
+            self.logger.error(f"Database error: {e}")
             # Handle the error as appropriate
             return []
 
@@ -151,7 +153,7 @@ class Model:
             current_month_num = get_current_month
             if not (isinstance(current_month_num, int)
                     and 1 <= current_month_num <= 12):
-                print("Invalid month number.")
+                self.logger.error("Invalid month number.")
                 return []
 
             formatted_month = f"{current_month_num:02d}"
@@ -165,5 +167,5 @@ class Model:
             data = cursor.fetchall()
             return data
         except sqlite3.DatabaseError as e:
-            print(f"Database error: {e}")
+            self.logger.error(f"Database error: {e}")
             return []

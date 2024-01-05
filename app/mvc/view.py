@@ -1,3 +1,4 @@
+import logging
 import matplotlib.pyplot as plt
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -39,8 +40,11 @@ class View:
     responsible_options = []  # Customizable 'Responsible' dropdown list
 
     def __init__(self, controller):
+        self.logger = logging.getLogger(__name__)
+
         self.model = Model()
         self.controller = controller
+
         self.root = None
         self.tree = None
         self.status = None
@@ -113,7 +117,7 @@ class View:
                                  text=str(row[0]),
                                  values=row[1:])
         except Exception as e:
-            print(f"Error loading data into treeview: {e}")
+            self.logger.error(f"Error loading data into treeview: {e}")
 
     def create_graph(self, graph_frame: Frame) -> None:
         """Generates and displays a bar graph of monthly expenses
@@ -160,7 +164,7 @@ class View:
             canvas.draw()
             canvas.get_tk_widget().pack(fill='both', expand=True)
         except Exception as e:
-            print(f"Error creating graph: {e}")
+            self.logger.error(f"Error creating graph: {e}")
 
     def create_view(self):
         self.root = Tk()

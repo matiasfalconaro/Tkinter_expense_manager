@@ -1,5 +1,6 @@
 import datetime
 import locale
+import logging
 import re
 
 from tkinter.messagebox import showinfo
@@ -11,6 +12,7 @@ class Controller:
     """Manages interactions between the model and view"""
 
     def __init__(self, model):
+        self.logger = logging.getLogger(__name__)
         self.model = model
         self.view = None
 
@@ -240,7 +242,7 @@ class Controller:
 
             return True
         except Exception as e:
-            print(f"Error in validate_fields: {e}")
+            self.logger.error(f"Error in validate_fields: {e}")
             return False
 
     def prepare_add(self) -> None:
@@ -338,9 +340,9 @@ class Controller:
 
             return current_month_str.capitalize()
         except locale.Error as e:
-            print(f"Locale error: {e}")
+            self.logger.error(f"Locale error: {e}")
         except Exception as e:
-            print(f"Unexpected error: {e}")
+            self.logger.error(f"Unexpected error: {e}")
         return "Unknown Month"
 
     def get_total_accumulated(self) -> float:
@@ -354,5 +356,5 @@ class Controller:
 
             return total_accumulated
         except Exception as e:
-            print(f"Error in getting total accumulated: {e}")
+            self.logger.error(f"Error in getting total accumulated: {e}")
             return 0.0
