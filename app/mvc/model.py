@@ -53,34 +53,25 @@ class Model:
             self.logger.error(f"Database error: {e}")
 
     def add_to_db(self, values: dict) -> int:
-        """Inserts a new record into the 'expenses' table
-        and returns the ID of the inserted record."""
+        """Inserts a new expense record into the database
+        after validating the input data."""
         try:
-            required_fields = ['product',
-                               'quantity',
-                               'amount',
-                               'responsible',
-                               'category',
-                               'supplier',
-                               'payment_method',
-                               'date',
-                               'due_date']
-            self.logger.debug(f"Received values for add_to_db: {values}")
-            for field in required_fields:
-                if field not in values or values[field] is None:
-                    raise ValueError(f"Missing required field: {field}")
-
-            if not isinstance(values['quantity'],
-                              (int, float)) or not isinstance(values['amount'],
-                                                              (float, int)):
-                raise ValueError("Quantity and amount must be numeric")
+            if not self.validate_expense_data(values):
+                return -1
 
             cursor = self.conn.cursor()
-            query = """INSERT INTO expenses (product_service,
-                       quantity, amount, responsible, subtotal,
-                       category, supplier, payment_method,
-                       date, due_date)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+            query = """INSERT INTO expenses (
+                    product_service,
+                    quantity,
+                    amount,
+                    responsible,
+                    subtotal,
+                    category,
+                    supplier,
+                    payment_method,
+                    date,
+                    due_date)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
 
             subtotal = round(values['quantity'] * values['amount'], 2)
             data = (values['product'],
@@ -98,6 +89,7 @@ class Model:
             self.conn.commit()
             last_id = cursor.lastrowid
             return last_id
+
         except ValueError as e:
             self.logger.error(f"Input validation error: {e}")
             return -1
@@ -105,6 +97,32 @@ class Model:
             self.logger.error(f"Database error: {e}")
             self.conn.rollback()
             return -1
+
+    def validate_expense_data(self, values: dict) -> bool:
+        """Validates the provided expense data
+        against required fields and types."""
+        required_fields = ['product',
+                           'quantity',
+                           'amount',
+                           'responsible',
+                           'category',
+                           'supplier',
+                           'payment_method',
+                           'date',
+                           'due_date']
+        for field in required_fields:
+            if field not in values or values[field] is None:
+                self.logger.error(f"Missing required field: {field}")
+                raise ValueError(f"Missing required field: {field}")
+
+        if (
+            not isinstance(values['quantity'], (int, float))
+            or not isinstance(values['amount'], (float, int))
+        ):
+            self.logger.error("Quantity and amount must be numeric")
+            raise ValueError("Quantity and amount must be numeric")
+
+        return True
 
     def delete_from_db(self, record_id: int) -> bool:
         """Deletes a record from the 'expenses' table
